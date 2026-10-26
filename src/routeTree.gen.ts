@@ -10,33 +10,73 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BuscaRouteImport } from './routes/busca'
+import { Route as FavoritosRouteImport } from './routes/favoritos'
+import { Route as FontesRouteImport } from './routes/fontes'
+import { Route as ItemNameRouteImport } from './routes/item.$name'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BuscaRoute = BuscaRouteImport.update({
+  id: '/busca',
+  path: '/busca',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FavoritosRoute = FavoritosRouteImport.update({
+  id: '/favoritos',
+  path: '/favoritos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FontesRoute = FontesRouteImport.update({
+  id: '/fontes',
+  path: '/fontes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ItemNameRoute = ItemNameRouteImport.update({
+  id: '/item/$name',
+  path: '/item/$name',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/busca': typeof BuscaRoute
+  '/favoritos': typeof FavoritosRoute
+  '/fontes': typeof FontesRoute
+  '/item/$name': typeof ItemNameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/busca': typeof BuscaRoute
+  '/favoritos': typeof FavoritosRoute
+  '/fontes': typeof FontesRoute
+  '/item/$name': typeof ItemNameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/busca': typeof BuscaRoute
+  '/favoritos': typeof FavoritosRoute
+  '/fontes': typeof FontesRoute
+  '/item/$name': typeof ItemNameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/busca' | '/favoritos' | '/fontes' | '/item/$name'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/busca' | '/favoritos' | '/fontes' | '/item/$name'
+  id: '__root__' | '/' | '/busca' | '/favoritos' | '/fontes' | '/item/$name'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BuscaRoute: typeof BuscaRoute
+  FavoritosRoute: typeof FavoritosRoute
+  FontesRoute: typeof FontesRoute
+  ItemNameRoute: typeof ItemNameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +88,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/busca': {
+      id: '/busca'
+      path: '/busca'
+      fullPath: '/busca'
+      preLoaderRoute: typeof BuscaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/favoritos': {
+      id: '/favoritos'
+      path: '/favoritos'
+      fullPath: '/favoritos'
+      preLoaderRoute: typeof FavoritosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fontes': {
+      id: '/fontes'
+      path: '/fontes'
+      fullPath: '/fontes'
+      preLoaderRoute: typeof FontesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/item/$name': {
+      id: '/item/$name'
+      path: '/item/$name'
+      fullPath: '/item/$name'
+      preLoaderRoute: typeof ItemNameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BuscaRoute: BuscaRoute,
+  FavoritosRoute: FavoritosRoute,
+  FontesRoute: FontesRoute,
+  ItemNameRoute: ItemNameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
