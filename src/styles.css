@@ -121,6 +121,11 @@
   h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.01em; }
 }
 
+@utility inp {
+  height: 2.25rem; width: 100%; border-radius: var(--radius); border: 1px solid var(--input);
+  background-color: var(--background); padding: 0 0.6rem; font-size: 0.875rem; outline: none;
+  &:focus { border-color: var(--primary); }
+}
 @utility num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
 @utility bg-hero { background-image: var(--gradient-hero); }
 @utility panel {
