@@ -98,7 +98,7 @@ function ItemPage() {
 
       <section className="panel mt-8 overflow-x-auto p-5">
         <h2 className="text-xl font-bold">Comparador entre marketplaces</h2>
-        <SkinportStaleNotice stale={data.skinportStale} ts={data.fetchedAt} />
+        <SkinportStaleNotice stale={data.skinportStale} ts={data.fetchedAt} source={data.source} />
         <SteamNotice status={data.steamStatus} fetchedAt={data.steamFetchedAt} retryAt={data.steamRetryAt} />
         <p className="mb-4 text-xs text-muted-foreground">Preços em BRL informados pelas próprias fontes (sem conversão). Taxas públicas de cada plataforma.</p>
         <table className="w-full min-w-[720px] text-sm">
@@ -173,7 +173,7 @@ function ItemPage() {
             {data.variants.map((v) => (
               <Link key={v.name} to="/item/$name" params={{ name: v.name }} className="flex justify-between rounded-sm border border-border p-3 text-sm hover:border-primary">
                 <span>{v.stattrak && "ST™ "}{v.exterior ?? v.name}</span>
-                <Money v={v.min} className="text-primary" />
+                <Money v={v.min} currency={v.currency} className="text-primary" />
               </Link>
             ))}
           </div>

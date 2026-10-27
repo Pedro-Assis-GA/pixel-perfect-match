@@ -60,3 +60,27 @@ describe("skinport client", () => {
     expect((await get()).stale).toBe(false);
   });
 });
+
+import { createCatalog } from "./sources.server";
+describe("catalog fallback", () => {
+  const body = { data: { "AK-47 | Redline (Field-Tested)": { skinport: { ask: 30.5, ask_volume: 40, suggested_price: 33, updated_at: "2026-10-27T21:00:00Z" } }, "No Skinport": { steam: { ask: 1 } } } };
+  it("Skinport 403 with empty cache serves real OpenSkin rows in USD", async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify(body)));
+    const get = createCatalog({ skinport: async () => { throw new Error("Skinport respondeu 403"); }, fetch: fetch as unknown as typeof globalThis.fetch });
+    const r = await get();
+    expect(r.source).toBe("openskin");
+    expect(r.currency).toBe("USD");
+    expect(r.rows).toHaveLength(1);
+    expect(r.rows[0]).toMatchObject({ min: 30.5, quantity: 40, currency: "USD" });
+    await get();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it("both sources down with no cache throws", async () => {
+    const get = createCatalog({ skinport: async () => { throw new Error("Skinport respondeu 403"); }, fetch: (async () => new Response("", { status: 503 })) as unknown as typeof globalThis.fetch });
+    await expect(get()).rejects.toThrow("403");
+  });
+  it("Skinport working stays the source in BRL", async () => {
+    const get = createCatalog({ skinport: async () => ({ rows: [], fetchedAt: 1, stale: false }) });
+    expect(await get()).toMatchObject({ source: "skinport", currency: "BRL" });
+  });
+});

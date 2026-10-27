@@ -34,7 +34,7 @@ function Dashboard() {
 
   return (
     <AppShell>
-      <SkinportStaleNotice stale={data.stale} ts={data.fetchedAt} />
+      <SkinportStaleNotice stale={data.stale} ts={data.fetchedAt} source={data.source} />
       <section className="mb-10">
         <p className="text-xs uppercase tracking-[0.3em] text-primary">Visão geral do mercado</p>
         <h1 className="mt-2 text-4xl font-bold md:text-5xl">Mercado CS2, sem achismo.</h1>
@@ -46,7 +46,7 @@ function Dashboard() {
           <Stat label="Itens com anúncio" v={data.totals.items.toLocaleString("pt-BR")} />
           <Stat label="Anúncios ativos (Skinport)" v={data.totals.listings.toLocaleString("pt-BR")} />
           <Stat label="Fontes integradas" v="2" />
-          <Stat label="Moeda" v="BRL" />
+          <Stat label="Moeda" v={data.currency ?? "BRL"} />
         </div>
       </section>
 

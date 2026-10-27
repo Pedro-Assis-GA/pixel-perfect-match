@@ -131,7 +131,7 @@ function SearchPage() {
             </div>
           </div>
 
-          {q.data && <SkinportStaleNotice stale={q.data.stale} ts={q.data.fetchedAt} />}
+          {q.data && <SkinportStaleNotice stale={q.data.stale} ts={q.data.fetchedAt} source={q.data.source} />}
           {q.isError && <div className="panel p-6 text-sm">Falha ao consultar a Skinport. Tente novamente em instantes.</div>}
           {q.isPending && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">{Array.from({ length: 9 }).map((_, i) => <div key={i} className="panel h-36 animate-pulse" />)}</div>}
           {q.data && q.data.total === 0 && <div className="panel p-6 text-sm text-muted-foreground">Nenhum item encontrado com esses filtros.</div>}
@@ -154,8 +154,8 @@ function SearchPage() {
                     <tr key={r.name} className="border-b border-border/50 hover:bg-accent/40">
                       <td className="p-2"><FavButton name={r.name} /></td>
                       <td className="p-2"><Link to="/item/$name" params={{ name: r.name }} className="hover:text-primary">{r.name}</Link></td>
-                      <td className="p-2 text-right"><Money v={r.min} className="text-primary" /></td>
-                      <td className="p-2 text-right"><Money v={r.suggested} /></td>
+                      <td className="p-2 text-right"><Money v={r.min} currency={r.currency} className="text-primary" /></td>
+                      <td className="p-2 text-right"><Money v={r.suggested} currency={r.currency} /></td>
                       <td className="p-2 text-right"><Pct v={r.discountPct} /></td>
                       <td className="num p-2 text-right">{r.quantity}</td>
                       <td className="p-2"><Updated ts={r.updatedAt} /></td>

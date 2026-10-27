@@ -11,6 +11,7 @@ export interface SkinRow extends ParsedName {
   quantity: number;
   updatedAt: number; // unix seconds
   url: string;
+  currency: "BRL" | "USD";
 }
 
 interface SkinportItem {
@@ -32,6 +33,8 @@ export interface SkinportItems {
   rows: SkinRow[];
   fetchedAt: number; // ms — when these rows were actually obtained from Skinport
   stale: boolean; // true when the latest refresh failed and older cached rows are served
+  source?: "skinport" | "openskin";
+  currency?: "BRL" | "USD";
 }
 
 export function createSkinportClient(opts: { fetch?: typeof fetch; now?: () => number } = {}) {
@@ -60,6 +63,7 @@ export function createSkinportClient(opts: { fetch?: typeof fetch; now?: () => n
           quantity: d.quantity,
           updatedAt: d.updated_at,
           url: d.market_page || d.item_page,
+          currency: "BRL" as const,
         }));
       })()
         .then((rows) => {
@@ -80,7 +84,59 @@ export function createSkinportClient(opts: { fetch?: typeof fetch; now?: () => n
   };
 }
 
-export const getSkinportItems = createSkinportClient();
+const skinportDirect = createSkinportClient();
+
+// Fallback: OpenSkin /v1/prices/all (one bulk request, CDN max-age 300). Uses the "skinport"
+// market block it reports, in USD as provided. Only used when Skinport fails with no cache.
+export function parseOpenSkinCatalog(body: unknown): SkinRow[] {
+  const data = (body as { data?: Record<string, { skinport?: unknown }> })?.data ?? {};
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const out: SkinRow[] = [];
+  for (const [name, entry] of Object.entries(data)) {
+    const sp = entry?.skinport as { [k: string]: unknown; updated_at?: unknown; suggested_price?: unknown; ask?: unknown; median?: unknown; mean?: unknown; max_ask?: unknown; ask_volume?: unknown } | undefined;
+    if (!sp || typeof sp !== "object") continue;
+    const ts = typeof sp.updated_at === "string" ? Date.parse(sp.updated_at) : NaN;
+    out.push({
+      name, ...parseMarketName(name),
+      suggested: n(sp.suggested_price), min: n(sp.ask), median: n(sp.median), mean: n(sp.mean), max: n(sp.max_ask),
+      quantity: n(sp.ask_volume) ?? 0,
+      updatedAt: Number.isFinite(ts) ? Math.floor(ts / 1000) : 0,
+      url: `https://skinport.com/market?search=${encodeURIComponent(name)}`,
+      currency: "USD",
+    });
+  }
+  return out;
+}
+
+export function createCatalog(opts: { skinport: () => Promise<SkinportItems>; fetch?: typeof fetch; now?: () => number }) {
+  const f = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
+  const now = opts.now ?? Date.now;
+  let cache: { at: number; rows: SkinRow[] } | null = null;
+  let failedUntil = 0;
+  return async function getItems(): Promise<SkinportItems> {
+    try {
+      return { ...(await opts.skinport()), source: "skinport", currency: "BRL" };
+    } catch (e) {
+      const fb = (stale: boolean): SkinportItems => ({ rows: cache!.rows, fetchedAt: cache!.at, stale, source: "openskin", currency: "USD" });
+      if (cache && now() - cache.at < SKINPORT_TTL) return fb(false);
+      if (now() < failedUntil) { if (cache) return fb(true); throw e; }
+      try {
+        const r = await f("https://api.openskin.dev/v1/prices/all", { headers: { Accept: "application/json" } });
+        if (!r.ok) throw new Error(`OpenSkin respondeu ${r.status}`);
+        const rows = parseOpenSkinCatalog(await r.json());
+        if (!rows.length) throw new Error("OpenSkin sem itens");
+        cache = { at: now(), rows };
+        return fb(false);
+      } catch {
+        failedUntil = now() + 2 * 60 * 1000;
+        if (cache) return fb(true);
+        throw e;
+      }
+    }
+  };
+}
+
+export const getSkinportItems = createCatalog({ skinport: skinportDirect });
 
 export interface PeriodStat {
   min: number | null;
