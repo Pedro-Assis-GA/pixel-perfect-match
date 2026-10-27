@@ -86,7 +86,7 @@ export const getItem = createServerFn({ method: "GET" })
     ]);
     const found = rows.find((r) => r.name === data.name) ?? null;
     const skinport = source === "openskin" ? null : found;
-    const base = found ? `${skinport.weapon} | ${skinport.skin}` : null;
+    const base = found ? `${found.weapon} | ${found.skin}` : null;
     const variants = base
       ? rows
           .filter((r) => r.name !== data.name && r.weapon === found!.weapon && r.skin === found!.skin && r.min != null)
