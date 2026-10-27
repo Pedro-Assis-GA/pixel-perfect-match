@@ -22,7 +22,7 @@ export const Route = createFileRoute("/item/$name")({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(itemQ(params.name)),
   component: ItemPage,
   errorComponent: ({ error }) => (
-    <AppShell><div className="panel p-6 text-sm">Não foi possível carregar este item: {error.message}</div></AppShell>
+    <AppShell><div className="panel p-6 text-sm">Não foi possível carregar este item: {error instanceof Error ? error.message : String(error)}</div></AppShell>
   ),
 });
 

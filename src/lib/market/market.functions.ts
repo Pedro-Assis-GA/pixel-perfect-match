@@ -82,9 +82,9 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async () =
   const listed = rows.filter((r) => r.quantity > 0 && r.min != null);
   const byCat: Record<string, { count: number; listings: number }> = {};
   for (const r of listed) {
-    byCat[r.category] ??= { count: 0, listings: 0 };
-    byCat[r.category].count++;
-    byCat[r.category].listings += r.quantity;
+    const c = (byCat[r.category] ??= { count: 0, listings: 0 });
+    c.count++;
+    c.listings += r.quantity;
   }
   // "Opportunity" candidates need liquidity (≥ 20 listings) and a meaningful price,
   // so a single stray listing never ranks. Still labelled as candidates, not certainties.

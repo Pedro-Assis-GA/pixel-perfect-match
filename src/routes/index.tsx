@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
   errorComponent: ({ error }) => (
     <AppShell>
-      <div className="panel p-6 text-sm">Não foi possível carregar o mercado agora: {error.message}</div>
+      <div className="panel p-6 text-sm">Não foi possível carregar o mercado agora: {error instanceof Error ? error.message : String(error)}</div>
     </AppShell>
   ),
 });
