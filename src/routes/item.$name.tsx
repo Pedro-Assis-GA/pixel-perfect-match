@@ -38,7 +38,7 @@ function ItemPage() {
       price: sp?.min ?? null,
       fee: FEES.skinport,
       url: sp?.url,
-      ts: data.fetchedAt,
+      ts: data.fetchedAt as number | null,
       extra: sp ? `${sp.quantity} anúncios` : null,
     },
     {
@@ -46,7 +46,7 @@ function ItemPage() {
       price: st?.lowest ?? null,
       fee: FEES.steam,
       url: st?.url,
-      ts: data.steamFetchedAt,
+      ts: data.steamFetchedAt as number | null,
       extra: st?.volume24h != null ? `${st.volume24h} vendas/24h` : null,
     },
   ];
@@ -98,6 +98,7 @@ function ItemPage() {
 
       <section className="panel mt-8 overflow-x-auto p-5">
         <h2 className="text-xl font-bold">Comparador entre marketplaces</h2>
+        <SteamNotice status={data.steamStatus} fetchedAt={data.steamFetchedAt} retryAt={data.steamRetryAt} />
         <p className="mb-4 text-xs text-muted-foreground">Preços em BRL informados pelas próprias fontes (sem conversão). Taxas públicas de cada plataforma.</p>
         <table className="w-full min-w-[720px] text-sm">
           <thead className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -118,7 +119,7 @@ function ItemPage() {
                     {r.fee.cashOut ? "Sacável" : "Só carteira Steam"}
                   </span>
                 </td>
-                <td className="p-2"><Updated ts={r.ts} /></td>
+                <td className="p-2">{r.ts != null ? <Updated ts={r.ts} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
                 <td className="p-2">{r.url && <a href={r.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">Abrir <ExternalLink className="h-3 w-3" /></a>}</td>
               </tr>
             ))}
@@ -184,6 +185,25 @@ function Box({ label, children }: { label: string; children: React.ReactNode }) 
     <div className="panel p-3">
       <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
       <div className="mt-1">{children}</div>
+    </div>
+  );
+}
+
+function SteamNotice({ status, fetchedAt, retryAt }: { status: string; fetchedAt: number | null; retryAt: number | null }) {
+  if (status === "ok") return null;
+  const retry = retryAt ? Math.max(1, Math.ceil((retryAt - Date.now()) / 60000)) : null;
+  const msg =
+    status === "stale"
+      ? `Steam temporariamente indisponível. Exibindo o último preço obtido (${fetchedAt ? new Date(fetchedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "?"}), que pode estar desatualizado.`
+      : status === "rate_limited"
+        ? "A Steam limitou as consultas (HTTP 429). Sem preço em cache para este item."
+        : status === "not_found"
+          ? "A Steam não retornou preço para este item."
+          : "Steam indisponível no momento. Sem preço em cache para este item.";
+  return (
+    <div role="status" className="mb-3 flex gap-2 rounded-sm border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
+      <Info className="mt-0.5 h-3 w-3 shrink-0" />
+      <span>{msg}{retry && status !== "not_found" ? ` Nova tentativa em ~${retry} min.` : ""}</span>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 // Server-only marketplace adapters. Each normalizes into SkinRow / ItemDetail.
-import { parseMarketName, parseBRL, type ParsedName } from "./parse";
+import { parseMarketName, type ParsedName } from "./parse";
 
 export interface SkinRow extends ParsedName {
   name: string;
@@ -98,36 +98,8 @@ export async function getSkinportHistory(name: string): Promise<SkinportHistory 
   return v;
 }
 
-export interface SteamQuote {
-  lowest: number | null;
-  median: number | null;
-  volume24h: number | null;
-  url: string;
-  image: string | null;
-}
+import { createSteamClient } from "./steam";
+export type { SteamQuote, SteamResult, SteamStatus } from "./steam";
 
-export async function getSteamQuote(name: string): Promise<SteamQuote | null> {
-  const url = `https://steamcommunity.com/market/listings/730/${encodeURIComponent(name)}`;
-  try {
-    const [ov, search] = await Promise.all([
-      fetch(
-        `https://steamcommunity.com/market/priceoverview/?appid=730&currency=7&market_hash_name=${encodeURIComponent(name)}`,
-      ).then((r) => (r.ok ? r.json() : null)),
-      fetch(
-        `https://steamcommunity.com/market/search/render/?appid=730&norender=1&count=5&query=${encodeURIComponent(name)}`,
-      ).then((r) => (r.ok ? r.json() : null)),
-    ]);
-    const hit = (search?.results ?? []).find((r: { hash_name: string }) => r.hash_name === name);
-    const icon = hit?.asset_description?.icon_url;
-    if (!ov?.success && !icon) return null;
-    return {
-      lowest: parseBRL(ov?.lowest_price),
-      median: parseBRL(ov?.median_price),
-      volume24h: ov?.volume ? parseInt(String(ov.volume).replace(/\D/g, ""), 10) : null,
-      url,
-      image: icon ? `https://community.cloudflare.steamstatic.com/economy/image/${icon}/360fx360f` : null,
-    };
-  } catch {
-    return null;
-  }
-}
+const steam = createSteamClient();
+export const getSteamQuote = (name: string) => steam.getQuote(name);
