@@ -112,7 +112,9 @@ export async function getSkinportHistory(name: string): Promise<SkinportHistory 
 }
 
 import { createSteamClient } from "./steam";
+import { createOpenSkinClient } from "./openskin";
 export type { SteamQuote, SteamResult, SteamStatus } from "./steam";
 
 const steam = createSteamClient();
+export const getOpenSkinPrices = createOpenSkinClient();
 export const getSteamQuote = (name: string) => steam.getQuote(name);
