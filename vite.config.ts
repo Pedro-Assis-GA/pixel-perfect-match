@@ -12,4 +12,9 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Pre-bundle libraries used by the pages so Vite never re-optimizes mid-session,
+  // which loaded two React copies ("dispatcher is null") in the preview.
+  vite: {
+    optimizeDeps: { include: ["recharts", "sonner", "lucide-react", "zod"] },
+  },
 });
