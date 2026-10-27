@@ -118,7 +118,7 @@ export const getItem = createServerFn({ method: "GET" })
     const [{ rows, fetchedAt }, history, steam] = await Promise.all([
       getSkinportItems(),
       getSkinportHistory(data.name).catch(() => null),
-      getSteamQuote(data.name),
+      getSteamQuote(data.name).catch(() => ({ quote: null, status: "unavailable" as const, fetchedAt: null, retryAt: null })),
     ]);
     const skinport = rows.find((r) => r.name === data.name) ?? null;
     const base = skinport ? `${skinport.weapon} | ${skinport.skin}` : null;
@@ -127,5 +127,8 @@ export const getItem = createServerFn({ method: "GET" })
           .filter((r) => r.name !== data.name && r.weapon === skinport!.weapon && r.skin === skinport!.skin && r.min != null)
           .map((r) => ({ name: r.name, min: r.min, quantity: r.quantity, exterior: r.exterior, stattrak: r.stattrak }))
       : [];
-    return { name: data.name, skinport, history, steam, variants, fetchedAt, steamFetchedAt: Date.now() };
+    return {
+      name: data.name, skinport, history, variants, fetchedAt,
+      steam: steam.quote, steamStatus: steam.status, steamFetchedAt: steam.fetchedAt, steamRetryAt: steam.retryAt,
+    };
   });
