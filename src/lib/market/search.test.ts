@@ -34,7 +34,7 @@ describe("search filters", () => {
     expect(searchRows(rows, { stattrak: false, souvenir: false }).total).toBe(3);
   });
   it("Souvenir only", () => {
-    expect(searchRows(rows, { souvenir: true }).items[0].name).toContain("Souvenir");
+    expect(searchRows(rows, { souvenir: true }).items[0]!.name).toContain("Souvenir");
   });
   it("text search requires every term", () => {
     expect(searchRows(rows, { q: "redline field" }).total).toBe(2);
@@ -49,7 +49,7 @@ describe("search filters", () => {
     expect(PAGE_SIZE).toBe(48);
     expect(p2.total).toBe(100);
     expect(p2.pages).toBe(3);
-    expect(p2.items[0].min).toBe(52);
+    expect(p2.items[0]!.min).toBe(52);
     expect(p2.items.every((r) => r.name.includes("Redline"))).toBe(true);
   });
 });

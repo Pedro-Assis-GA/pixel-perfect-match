@@ -99,7 +99,7 @@ export interface SkinportHistory {
 const histCache = new Map<string, { at: number; v: SkinportHistory | null }>();
 export async function getSkinportHistory(name: string): Promise<SkinportHistory | null> {
   const c = histCache.get(name);
-  if (c && Date.now() - c.at < TTL) return c.v;
+  if (c && Date.now() - c.at < SKINPORT_TTL) return c.v;
   const res = await fetch(
     `https://api.skinport.com/v1/sales/history?app_id=730&currency=BRL&market_hash_name=${encodeURIComponent(name)}`,
     { headers: { "Accept-Encoding": "br" } },

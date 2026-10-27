@@ -29,7 +29,7 @@ describe("skinport client", () => {
     const r = await get();
     expect(r.stale).toBe(true);
     expect(r.fetchedAt).toBe(first.fetchedAt);
-    expect(r.rows[0].min).toBe(115);
+    expect(r.rows[0]!.min).toBe(115);
   });
 
   it("network error with previous cache is also flagged stale", async () => {
