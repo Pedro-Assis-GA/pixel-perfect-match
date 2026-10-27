@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AppShell } from "@/components/market/AppShell";
-import { SkinCard, Updated } from "@/components/market/bits";
+import { SkinCard, SkinportStaleNotice, Updated } from "@/components/market/bits";
 import { getDashboard } from "@/lib/market/market.functions";
 import { CATEGORY_LABEL, type Category } from "@/lib/market/parse";
 
@@ -34,6 +34,7 @@ function Dashboard() {
 
   return (
     <AppShell>
+      <SkinportStaleNotice stale={data.stale} ts={data.fetchedAt} />
       <section className="mb-10">
         <p className="text-xs uppercase tracking-[0.3em] text-primary">Visão geral do mercado</p>
         <h1 className="mt-2 text-4xl font-bold md:text-5xl">Mercado CS2, sem achismo.</h1>
