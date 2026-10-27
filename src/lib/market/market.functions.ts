@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { CATEGORIES, EXTERIORS, pctDiff } from "./parse";
 import { searchRows } from "./search";
-import { getSkinportHistory, getSkinportItems, getSteamQuote } from "./sources.server";
+import { getSkinportHistory, getSkinportItems, getSteamQuote, getOpenSkinPrices } from "./sources.server";
 
 export const searchSchema = z.object({
   q: z.string().max(100).optional(),
@@ -76,10 +76,11 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async () =
 export const getItem = createServerFn({ method: "GET" })
   .inputValidator((d: { name: string }) => z.object({ name: z.string().min(1).max(200) }).parse(d))
   .handler(async ({ data }) => {
-    const [{ rows, fetchedAt, stale: skinportStale }, history, steam] = await Promise.all([
+    const [{ rows, fetchedAt, stale: skinportStale }, history, steam, openskin] = await Promise.all([
       getSkinportItems(),
       getSkinportHistory(data.name).catch(() => null),
       getSteamQuote(data.name).catch(() => ({ quote: null, status: "unavailable" as const, fetchedAt: null, retryAt: null })),
+      getOpenSkinPrices(data.name).catch(() => ({ markets: [], status: "unavailable" as const, fetchedAt: null, retryAt: null })),
     ]);
     const skinport = rows.find((r) => r.name === data.name) ?? null;
     const base = skinport ? `${skinport.weapon} | ${skinport.skin}` : null;
@@ -90,6 +91,6 @@ export const getItem = createServerFn({ method: "GET" })
       : [];
     return {
       name: data.name, skinport, history, variants, fetchedAt, skinportStale,
-      steam: steam.quote, steamStatus: steam.status, steamFetchedAt: steam.fetchedAt, steamRetryAt: steam.retryAt,
+      steam: steam.quote, steamStatus: steam.status, steamFetchedAt: steam.fetchedAt, steamRetryAt: steam.retryAt, openskin,
     };
   });

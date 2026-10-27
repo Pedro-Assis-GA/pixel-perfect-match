@@ -132,6 +132,8 @@ function ItemPage() {
         </ul>
       </section>
 
+      <OpenSkinSection o={data.openskin} />
+
       <section className="panel mt-6 p-5">
         <h2 className="text-xl font-bold">Histórico de vendas (Skinport)</h2>
         <p className="mb-4 text-xs text-muted-foreground">Vendas efetivamente concluídas, agregadas por período. A Skinport não expõe série diária; não estimamos pontos intermediários.</p>
@@ -206,5 +208,50 @@ function SteamNotice({ status, fetchedAt, retryAt }: { status: string; fetchedAt
       <Info className="mt-0.5 h-3 w-3 shrink-0" />
       <span>{msg}{retry && status !== "not_found" ? ` Nova tentativa em ~${retry} min.` : ""}</span>
     </div>
+  );
+}
+
+const usd = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD" });
+function OpenSkinSection({ o }: { o: { markets: { market: string; ask: number | null; bid: number | null; median: number | null; listings: number | null; volume24h: number | null; currency: string; updatedAt: string | null; url: string | null }[]; status: string; fetchedAt: number | null } }) {
+  const fmt = (v: number | null, c: string) => (v == null ? "—" : c === "USD" ? usd.format(v) : `${v.toFixed(2)} ${c}`);
+  return (
+    <section className="panel mt-6 overflow-x-auto p-5">
+      <h2 className="text-xl font-bold">Outros marketplaces (via OpenSkin)</h2>
+      <p className="mb-4 text-xs text-muted-foreground">
+        Preços agregados na <b>moeda original (USD)</b>, sem conversão para BRL. Não comparar diretamente com os valores em R$ acima.
+      </p>
+      {o.status === "stale" && (
+        <div role="status" className="mb-3 rounded-sm border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
+          OpenSkin indisponível. Exibindo últimos dados obtidos{o.fetchedAt ? ` (${new Date(o.fetchedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })})` : ""}, que podem estar desatualizados.
+        </div>
+      )}
+      {o.markets.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {o.status === "not_found" ? "A OpenSkin não retornou preços para este item." : "OpenSkin indisponível no momento. Nenhum preço exibido."}
+        </p>
+      ) : (
+        <table className="w-full min-w-[720px] text-sm">
+          <thead className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
+            <tr className="border-b border-border">
+              <th className="p-2">Marketplace</th><th className="p-2 text-right">Menor anúncio</th><th className="p-2 text-right">Maior oferta de compra</th><th className="p-2 text-right">Mediana</th><th className="p-2 text-right">Anúncios</th><th className="p-2 text-right">Vendas 24h</th><th className="p-2">Atualizado</th><th className="p-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {o.markets.map((m) => (
+              <tr key={m.market} className="border-b border-border/50">
+                <td className="p-2 font-semibold">{m.market}</td>
+                <td className="num p-2 text-right">{fmt(m.ask, m.currency)}</td>
+                <td className="num p-2 text-right">{fmt(m.bid, m.currency)}</td>
+                <td className="num p-2 text-right">{fmt(m.median, m.currency)}</td>
+                <td className="num p-2 text-right">{m.listings ?? "—"}</td>
+                <td className="num p-2 text-right">{m.volume24h ?? "—"}</td>
+                <td className="p-2">{m.updatedAt ? <Updated ts={Date.parse(m.updatedAt)} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
+                <td className="p-2">{m.url && <a href={m.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">Abrir <ExternalLink className="h-3 w-3" /></a>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
   );
 }
