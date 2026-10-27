@@ -16,12 +16,12 @@ export const Route = createFileRoute("/busca")({
     const bool = (v: unknown) => (v === true || v === "true" ? true : v === false || v === "false" ? false : undefined);
     const r = urlSchema.safeParse({
       ...s,
-      min: num(s.min),
-      max: num(s.max),
-      page: num(s.page),
-      stattrak: bool(s.stattrak),
-      souvenir: bool(s.souvenir),
-      q: s.q ? String(s.q) : undefined,
+      min: num(s["min"]),
+      max: num(s["max"]),
+      page: num(s["page"]),
+      stattrak: bool(s["stattrak"]),
+      souvenir: bool(s["souvenir"]),
+      q: s["q"] ? String(s["q"]) : undefined,
     });
     return r.success ? r.data : {};
   },

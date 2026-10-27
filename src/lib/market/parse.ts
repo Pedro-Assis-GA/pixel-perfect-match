@@ -71,7 +71,7 @@ export function parseMarketName(name: string): ParsedName {
 
   let exterior: Exterior | null = null;
   const m = n.match(/\(([^)]+)\)\s*$/);
-  if (m && (EXTERIORS as readonly string[]).includes(m[1])) {
+  if (m && m[1] && (EXTERIORS as readonly string[]).includes(m[1])) {
     exterior = m[1] as Exterior;
     n = n.slice(0, m.index).trim();
   }
