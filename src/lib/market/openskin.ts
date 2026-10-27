@@ -29,7 +29,7 @@ const LABEL: Record<string, string> = { steam: "Steam", skinport: "Skinport", bu
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
 export function parseOpenSkin(body: unknown): OpenSkinMarket[] {
-  const b = body as { prices?: Record<string, Record<string, unknown> | null>; links?: Record<string, string> };
+  const b = body as { prices?: Record<string, { ask?: unknown; bid?: unknown; highest_bid?: unknown; median?: unknown; ask_volume?: unknown; sell_order_count?: unknown; volume_24h?: unknown; currency?: unknown; updated_at?: unknown } | null>; links?: Record<string, string> };
   return Object.entries(b?.prices ?? {})
     .filter(([, p]) => p && typeof p === "object")
     .map(([k, p]) => ({
