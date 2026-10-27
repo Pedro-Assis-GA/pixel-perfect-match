@@ -26,48 +26,61 @@ interface SkinportItem {
   market_page: string;
 }
 
-let cache: { at: number; rows: SkinRow[] } | null = null;
-let inflight: Promise<SkinRow[]> | null = null;
-const TTL = 5 * 60 * 1000; // Skinport caches this endpoint for 5 min and rate-limits to 8 req / 5 min.
+export const SKINPORT_TTL = 5 * 60 * 1000; // Skinport caches this endpoint for 5 min and rate-limits to 8 req / 5 min.
 
-export async function getSkinportItems(): Promise<{ rows: SkinRow[]; fetchedAt: number }> {
-  if (cache && Date.now() - cache.at < TTL) return { rows: cache.rows, fetchedAt: cache.at };
-  if (!inflight) {
-    inflight = (async () => {
-      const res = await fetch("https://api.skinport.com/v1/items?app_id=730&currency=BRL&tradable=0", {
-        headers: { "Accept-Encoding": "br", Accept: "application/json" },
-      });
-      if (!res.ok) throw new Error(`Skinport respondeu ${res.status}`);
-      const data = (await res.json()) as SkinportItem[];
-      return data.map((d) => ({
-        name: d.market_hash_name,
-        ...parseMarketName(d.market_hash_name),
-        suggested: d.suggested_price,
-        min: d.min_price,
-        median: d.median_price,
-        mean: d.mean_price,
-        max: d.max_price,
-        quantity: d.quantity,
-        updatedAt: d.updated_at,
-        url: d.market_page || d.item_page,
-      }));
-    })()
-      .then((rows) => {
-        cache = { at: Date.now(), rows };
-        return rows;
-      })
-      .finally(() => {
-        inflight = null;
-      });
-  }
-  try {
-    const rows = await inflight;
-    return { rows, fetchedAt: cache!.at };
-  } catch (e) {
-    if (cache) return { rows: cache.rows, fetchedAt: cache.at }; // serve stale on failure
-    throw e;
-  }
+export interface SkinportItems {
+  rows: SkinRow[];
+  fetchedAt: number; // ms — when these rows were actually obtained from Skinport
+  stale: boolean; // true when the latest refresh failed and older cached rows are served
 }
+
+export function createSkinportClient(opts: { fetch?: typeof fetch; now?: () => number } = {}) {
+  const f = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
+  const now = opts.now ?? Date.now;
+  let cache: { at: number; rows: SkinRow[] } | null = null;
+  let inflight: Promise<SkinRow[]> | null = null;
+
+  return async function getItems(): Promise<SkinportItems> {
+    if (cache && now() - cache.at < SKINPORT_TTL) return { rows: cache.rows, fetchedAt: cache.at, stale: false };
+    if (!inflight) {
+      inflight = (async () => {
+        const res = await f("https://api.skinport.com/v1/items?app_id=730&currency=BRL&tradable=0", {
+          headers: { "Accept-Encoding": "br", Accept: "application/json" },
+        });
+        if (!res.ok) throw new Error(`Skinport respondeu ${res.status}`);
+        const data = (await res.json()) as SkinportItem[];
+        return data.map((d) => ({
+          name: d.market_hash_name,
+          ...parseMarketName(d.market_hash_name),
+          suggested: d.suggested_price,
+          min: d.min_price,
+          median: d.median_price,
+          mean: d.mean_price,
+          max: d.max_price,
+          quantity: d.quantity,
+          updatedAt: d.updated_at,
+          url: d.market_page || d.item_page,
+        }));
+      })()
+        .then((rows) => {
+          cache = { at: now(), rows };
+          return rows;
+        })
+        .finally(() => {
+          inflight = null;
+        });
+    }
+    try {
+      const rows = await inflight;
+      return { rows, fetchedAt: cache!.at, stale: false };
+    } catch (e) {
+      if (cache) return { rows: cache.rows, fetchedAt: cache.at, stale: true }; // serve stale on failure, flagged
+      throw e;
+    }
+  };
+}
+
+export const getSkinportItems = createSkinportClient();
 
 export interface PeriodStat {
   min: number | null;
