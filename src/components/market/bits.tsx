@@ -15,7 +15,7 @@ export function Pct({ v, className }: { v: number | null | undefined; className?
 }
 
 const usd = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD" });
-export function Money({ v, className, currency = "BRL" }: { v: number | null | undefined; className?: string; currency?: string }) {
+export function Money({ v, className, currency = "BRL" }: { v: number | null | undefined; className?: string; currency?: string | undefined }) {
   if (v == null) return <span className="text-muted-foreground">indisponível</span>;
   return <span className={cn("num", className)}>{(currency === "USD" ? usd : brl).format(v)}</span>;
 }
@@ -61,7 +61,7 @@ export interface RowLike {
   souvenir: boolean;
   updatedAt: number;
   discountPct?: number | null;
-  currency?: string;
+  currency?: string | undefined;
 }
 
 export function SkinCard({ r }: { r: RowLike }) {
@@ -97,7 +97,7 @@ export function SkinCard({ r }: { r: RowLike }) {
   );
 }
 
-export function SkinportStaleNotice({ stale, ts, source }: { stale?: boolean; ts: number; source?: string }) {
+export function SkinportStaleNotice({ stale, ts, source }: { stale?: boolean; ts: number; source?: string | undefined }) {
   if (source === "openskin")
     return (
       <div role="status" className="mb-4 rounded-sm border border-warning/40 bg-warning/10 p-2 text-xs text-warning">

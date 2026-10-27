@@ -89,11 +89,11 @@ const skinportDirect = createSkinportClient();
 // Fallback: OpenSkin /v1/prices/all (one bulk request, CDN max-age 300). Uses the "skinport"
 // market block it reports, in USD as provided. Only used when Skinport fails with no cache.
 export function parseOpenSkinCatalog(body: unknown): SkinRow[] {
-  const data = (body as { data?: Record<string, Record<string, unknown>> })?.data ?? {};
+  const data = (body as { data?: Record<string, { skinport?: unknown }> })?.data ?? {};
   const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
   const out: SkinRow[] = [];
   for (const [name, entry] of Object.entries(data)) {
-    const sp = entry?.skinport as Record<string, unknown> | undefined;
+    const sp = entry?.skinport as { [k: string]: unknown; updated_at?: unknown; suggested_price?: unknown; ask?: unknown; median?: unknown; mean?: unknown; max_ask?: unknown; ask_volume?: unknown } | undefined;
     if (!sp || typeof sp !== "object") continue;
     const ts = typeof sp.updated_at === "string" ? Date.parse(sp.updated_at) : NaN;
     out.push({

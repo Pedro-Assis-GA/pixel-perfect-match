@@ -21,8 +21,8 @@ export type SearchParams = z.infer<typeof searchSchema>;
 export const searchSkins = createServerFn({ method: "GET" })
   .inputValidator((d: SearchParams) => searchSchema.parse(d))
   .handler(async ({ data }) => {
-    const { rows, fetchedAt, stale } = await getSkinportItems();
-    return { ...searchRows(rows, data), fetchedAt, stale };
+    const { rows, fetchedAt, stale, source, currency } = await getSkinportItems();
+    return { ...searchRows(rows, data), fetchedAt, stale, source, currency };
   });
 
 export const suggestSkins = createServerFn({ method: "GET" })
@@ -38,7 +38,7 @@ export const suggestSkins = createServerFn({ method: "GET" })
   });
 
 export const getDashboard = createServerFn({ method: "GET" }).handler(async () => {
-  const { rows, fetchedAt, stale } = await getSkinportItems();
+  const { rows, fetchedAt, stale, source, currency } = await getSkinportItems();
   const listed = rows.filter((r) => r.quantity > 0 && r.min != null);
   const byCat: Record<string, { count: number; listings: number }> = {};
   for (const r of listed) {
@@ -62,6 +62,8 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async () =
   return {
     fetchedAt,
     stale,
+    source,
+    currency,
     totals: {
       items: listed.length,
       listings: listed.reduce((s, r) => s + r.quantity, 0),

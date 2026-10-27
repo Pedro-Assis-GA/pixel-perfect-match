@@ -4,7 +4,7 @@ import { PAGE_SIZE, searchRows } from "./search";
 import type { SkinRow } from "./sources.server";
 
 const row = (name: string, min: number | null, quantity = 5): SkinRow => ({
-  name, ...parseMarketName(name), suggested: 100, min, median: null, mean: null, max: null, quantity, updatedAt: 0, url: "",
+  name, ...parseMarketName(name), suggested: 100, min, median: null, mean: null, max: null, quantity, updatedAt: 0, url: "", currency: "BRL",
 });
 const rows = [
   row("AK-47 | Redline (Field-Tested)", 115),
