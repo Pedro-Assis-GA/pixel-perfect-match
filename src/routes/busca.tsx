@@ -4,7 +4,7 @@ import { LayoutGrid, List, Share2, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/market/AppShell";
-import { FavButton, Money, Pct, SkinCard, Updated } from "@/components/market/bits";
+import { FavButton, Money, Pct, SkinCard, SkinportStaleNotice, Updated } from "@/components/market/bits";
 import { searchSchema, searchSkins, type SearchParams } from "@/lib/market/market.functions";
 import { CATEGORIES, CATEGORY_LABEL, EXTERIORS } from "@/lib/market/parse";
 
@@ -131,6 +131,7 @@ function SearchPage() {
             </div>
           </div>
 
+          {q.data && <SkinportStaleNotice stale={q.data.stale} ts={q.data.fetchedAt} />}
           {q.isError && <div className="panel p-6 text-sm">Falha ao consultar a Skinport. Tente novamente em instantes.</div>}
           {q.isPending && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">{Array.from({ length: 9 }).map((_, i) => <div key={i} className="panel h-36 animate-pulse" />)}</div>}
           {q.data && q.data.total === 0 && <div className="panel p-6 text-sm text-muted-foreground">Nenhum item encontrado com esses filtros.</div>}

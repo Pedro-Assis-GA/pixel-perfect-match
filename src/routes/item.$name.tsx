@@ -3,7 +3,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { ExternalLink, Info } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AppShell } from "@/components/market/AppShell";
-import { FavButton, Money, Pct, Updated } from "@/components/market/bits";
+import { FavButton, Money, Pct, SkinportStaleNotice, Updated } from "@/components/market/bits";
 import { getItem } from "@/lib/market/market.functions";
 import { brl, CATEGORY_LABEL, effectiveBuyCost, FEES, netAfterSale, pctDiff } from "@/lib/market/parse";
 
@@ -98,6 +98,7 @@ function ItemPage() {
 
       <section className="panel mt-8 overflow-x-auto p-5">
         <h2 className="text-xl font-bold">Comparador entre marketplaces</h2>
+        <SkinportStaleNotice stale={data.skinportStale} ts={data.fetchedAt} />
         <SteamNotice status={data.steamStatus} fetchedAt={data.steamFetchedAt} retryAt={data.steamRetryAt} />
         <p className="mb-4 text-xs text-muted-foreground">Preços em BRL informados pelas próprias fontes (sem conversão). Taxas públicas de cada plataforma.</p>
         <table className="w-full min-w-[720px] text-sm">

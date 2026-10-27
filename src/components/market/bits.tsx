@@ -94,3 +94,12 @@ export function SkinCard({ r }: { r: RowLike }) {
     </Link>
   );
 }
+
+export function SkinportStaleNotice({ stale, ts }: { stale?: boolean; ts: number }) {
+  if (!stale) return null;
+  return (
+    <div role="status" className="mb-4 rounded-sm border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
+      Skinport indisponível no momento. Exibindo os últimos dados obtidos (<Updated ts={ts} />), que podem não refletir os preços atuais.
+    </div>
+  );
+}
