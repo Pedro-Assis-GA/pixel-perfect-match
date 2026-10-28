@@ -44,13 +44,13 @@ function Dashboard() {
         </p>
         <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Stat label="Itens com anúncio" v={data.totals.items.toLocaleString("pt-BR")} />
-          <Stat label="Anúncios ativos (Skinport)" v={data.totals.listings.toLocaleString("pt-BR")} />
-          <Stat label="Fontes integradas" v="2" />
-          <Stat label="Moeda" v={data.currency ?? "BRL"} />
+          <Stat label={data.source === "openskin" ? "Anúncios Skinport (via OpenSkin)" : "Anúncios ativos (Skinport)"} v={data.totals.listings.toLocaleString("pt-BR")} />
+          <Stat label="Fontes integradas" v="3" />
+          <Stat label="Moeda" v={data.currency ?? "USD"} />
         </div>
       </section>
 
-      <Section title="Possíveis oportunidades" sub="Menor anúncio ≥10% abaixo do preço de referência Skinport, com ≥20 anúncios. Confira estado, float e taxas antes de agir.">
+      <Section title="Possíveis oportunidades" sub="Menor anúncio 10–80% abaixo do preço de referência Skinport (ambos em USD), referência ≥ US$ 4 e ≥20 anúncios. Confira estado, float e taxas antes de agir.">
         {data.opportunities.length ? (
           <Grid rows={data.opportunities} />
         ) : (
@@ -60,7 +60,7 @@ function Dashboard() {
 
       <section className="panel mb-10 p-5">
         <h2 className="text-xl font-bold">Oferta por categoria</h2>
-        <p className="mb-4 text-xs text-muted-foreground">Total de anúncios ativos na Skinport</p>
+        <p className="mb-4 text-xs text-muted-foreground">Total de anúncios na Skinport{data.source === "openskin" ? " (reportados pela OpenSkin)" : ""}, sem somar outros marketplaces</p>
         <div className="h-64">
           <ResponsiveContainer>
             <BarChart data={chart}>
@@ -76,7 +76,7 @@ function Dashboard() {
       <Section title="Mais ofertados" sub="Itens com maior número de anúncios — maior liquidez provável.">
         <Grid rows={data.mostListed} />
       </Section>
-      <Section title="Atualizados recentemente" sub="Itens acima de R$ 50 com preços atualizados por último.">
+      <Section title="Atualizados recentemente" sub="Itens com referência acima de US$ 10 com preços atualizados por último.">
         <Grid rows={data.recent} />
       </Section>
       <div className="text-center">

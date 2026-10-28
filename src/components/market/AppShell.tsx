@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Crosshair, Search } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { suggestSkins } from "@/lib/market/market.functions";
-import { brl } from "@/lib/market/parse";
+import { usd } from "@/lib/market/parse";
 
 const NAV = [
   { to: "/", label: "Dashboard" },
@@ -91,7 +91,7 @@ function GlobalSearch() {
                 className="flex justify-between gap-2 px-3 py-2 text-sm hover:bg-accent"
               >
                 <span className="truncate">{i.name}</span>
-                {i.min != null && <span className="num text-primary">{brl.format(i.min)}</span>}
+                {i.min != null && <span className="num text-primary">{usd.format(i.min)}</span>}
               </Link>
             </li>
           ))}
