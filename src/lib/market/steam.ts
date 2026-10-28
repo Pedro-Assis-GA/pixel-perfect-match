@@ -1,6 +1,6 @@
 // Steam Community Market client with caching, image reuse and 429 backoff.
 // Pure module (fetch + clock injectable) so it can be unit-tested without network.
-import { parseBRL } from "./parse";
+import { parseUSD } from "./parse";
 
 export interface SteamQuote {
   lowest: number | null;
@@ -66,7 +66,7 @@ export function createSteamClient(opts: { fetch?: typeof fetch; now?: () => numb
     const needImage = !img || now() - img.at > IMAGE_TTL;
     try {
       const [ov, search] = await Promise.all([
-        getJson(`https://steamcommunity.com/market/priceoverview/?appid=730&currency=7&market_hash_name=${enc}`),
+        getJson(`https://steamcommunity.com/market/priceoverview/?appid=730&currency=1&market_hash_name=${enc}`),
         needImage
           ? getJson(`https://steamcommunity.com/market/search/render/?appid=730&norender=1&count=5&query=${enc}`).catch(
               (e) => (e instanceof RateLimited ? Promise.reject(e) : null),
@@ -85,8 +85,8 @@ export function createSteamClient(opts: { fetch?: typeof fetch; now?: () => numb
         return { quote: image ? { lowest: null, median: null, volume24h: null, url, image } : null, status: "not_found", fetchedAt: now(), retryAt: null };
       }
       const quote: SteamQuote = {
-        lowest: parseBRL(ov.lowest_price),
-        median: parseBRL(ov.median_price),
+        lowest: parseUSD(ov.lowest_price),
+        median: parseUSD(ov.median_price),
         volume24h: ov.volume ? parseInt(String(ov.volume).replace(/\D/g, ""), 10) : null,
         url,
         image,

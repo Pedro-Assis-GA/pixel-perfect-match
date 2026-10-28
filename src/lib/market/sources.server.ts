@@ -40,14 +40,14 @@ export interface SkinportItems {
 export function createSkinportClient(opts: { fetch?: typeof fetch; now?: () => number } = {}) {
   const f = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   const now = opts.now ?? Date.now;
-  let cache: { at: number; rows: SkinRow[] } | null = null;
+  let cache: { at: number; rows: SkinRow[] } | null = null; // rows always USD (requested currency)
   let inflight: Promise<SkinRow[]> | null = null;
 
   return async function getItems(): Promise<SkinportItems> {
     if (cache && now() - cache.at < SKINPORT_TTL) return { rows: cache.rows, fetchedAt: cache.at, stale: false };
     if (!inflight) {
       inflight = (async () => {
-        const res = await f("https://api.skinport.com/v1/items?app_id=730&currency=BRL&tradable=0", {
+        const res = await f("https://api.skinport.com/v1/items?app_id=730&currency=USD&tradable=0", {
           headers: { "Accept-Encoding": "br", Accept: "application/json" },
         });
         if (!res.ok) throw new Error(`Skinport respondeu ${res.status}`);
@@ -63,7 +63,7 @@ export function createSkinportClient(opts: { fetch?: typeof fetch; now?: () => n
           quantity: d.quantity,
           updatedAt: d.updated_at,
           url: d.market_page || d.item_page,
-          currency: "BRL" as const,
+          currency: "USD" as const,
         }));
       })()
         .then((rows) => {
@@ -115,7 +115,11 @@ export function createCatalog(opts: { skinport: () => Promise<SkinportItems>; fe
   let failedUntil = 0;
   return async function getItems(): Promise<SkinportItems> {
     try {
-      return { ...(await opts.skinport()), source: "skinport", currency: "BRL" };
+      const r = await opts.skinport();
+      // Never serve rows denominated in another currency as USD (e.g. an old BRL cache).
+      const rows = r.rows.filter((x) => x.currency === "USD");
+      if (!rows.length) throw new Error("Skinport sem dados em USD");
+      return { ...r, rows, source: "skinport", currency: "USD" };
     } catch (e) {
       const fb = (stale: boolean): SkinportItems => ({ rows: cache!.rows, fetchedAt: cache!.at, stale, source: "openskin", currency: "USD" });
       if (cache && now() - cache.at < SKINPORT_TTL) return fb(false);
@@ -157,7 +161,7 @@ export async function getSkinportHistory(name: string): Promise<SkinportHistory 
   const c = histCache.get(name);
   if (c && Date.now() - c.at < SKINPORT_TTL) return c.v;
   const res = await fetch(
-    `https://api.skinport.com/v1/sales/history?app_id=730&currency=BRL&market_hash_name=${encodeURIComponent(name)}`,
+    `https://api.skinport.com/v1/sales/history?app_id=730&currency=USD&market_hash_name=${encodeURIComponent(name)}`,
     { headers: { "Accept-Encoding": "br" } },
   );
   if (!res.ok) return c?.v ?? null;

@@ -135,6 +135,13 @@ export function pctDiff(value: number, reference: number): number | null {
   return round2(((value - reference) / reference) * 100);
 }
 
+/** Parses Steam formatted USD strings like "$1,163.55 USD". */
+export function parseUSD(s: string | undefined | null): number | null {
+  if (!s) return null;
+  const v = parseFloat(s.replace(/[^\d.-]/g, ""));
+  return isFinite(v) ? v : null;
+}
+
 /** Parses Steam formatted BRL strings like "R$ 1.163,55". */
 export function parseBRL(s: string | undefined | null): number | null {
   if (!s) return null;
@@ -147,4 +154,4 @@ export function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
 
-export const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+export const usd = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD" });

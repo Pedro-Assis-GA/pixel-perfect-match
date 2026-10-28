@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
-import { brl, CATEGORY_LABEL, type Category } from "@/lib/market/parse";
+import { usd, CATEGORY_LABEL, type Category } from "@/lib/market/parse";
 import { useFavorites } from "@/lib/market/favorites";
 import { cn } from "@/lib/utils";
 
@@ -14,10 +14,9 @@ export function Pct({ v, className }: { v: number | null | undefined; className?
   );
 }
 
-const usd = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD" });
-export function Money({ v, className, currency = "BRL" }: { v: number | null | undefined; className?: string; currency?: string | undefined }) {
+export function Money({ v, className, currency = "USD" }: { v: number | null | undefined; className?: string; currency?: string | undefined }) {
   if (v == null) return <span className="text-muted-foreground">indisponível</span>;
-  return <span className={cn("num", className)}>{(currency === "USD" ? usd : brl).format(v)}</span>;
+  return <span className={cn("num", className)}>{currency === "USD" ? usd.format(v) : `${v.toFixed(2)} ${currency}`}</span>;
 }
 
 export function Updated({ ts }: { ts: number }) {
@@ -81,7 +80,7 @@ export function SkinCard({ r }: { r: RowLike }) {
       </h3>
       <div className="mt-3 flex items-end justify-between">
         <div>
-          <div className="text-[10px] uppercase text-muted-foreground">{r.currency === "USD" ? "Menor anúncio · Skinport via OpenSkin (USD)" : "Menor anúncio · Skinport"}</div>
+          <div className="text-[10px] uppercase text-muted-foreground">Menor anúncio · Skinport (USD)</div>
           <Money v={r.min} currency={r.currency} className="text-lg font-bold text-primary" />
         </div>
         <div className="text-right text-xs">
@@ -100,8 +99,8 @@ export function SkinCard({ r }: { r: RowLike }) {
 export function SkinportStaleNotice({ stale, ts, source }: { stale?: boolean; ts: number; source?: string | undefined }) {
   if (source === "openskin")
     return (
-      <div role="status" className="mb-4 rounded-sm border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
-        Skinport inacessível. Exibindo dados da Skinport reportados pela OpenSkin, em dólar (USD), sem conversão (<Updated ts={ts} />{stale ? ", desatualizado" : ""}).
+      <div role="status" className={cn("mb-4 rounded-sm border p-2 text-xs", stale ? "border-warning/40 bg-warning/10 text-warning" : "border-border bg-muted/40 text-muted-foreground")}>
+        Fonte alternativa: preços da Skinport reportados pela OpenSkin (USD). Consulta à OpenSkin <Updated ts={ts} />{stale ? " — nova consulta falhou, dados podem estar desatualizados" : ""}.
       </div>
     );
   if (!stale) return null;

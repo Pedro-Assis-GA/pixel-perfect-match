@@ -79,8 +79,22 @@ describe("catalog fallback", () => {
     const get = createCatalog({ skinport: async () => { throw new Error("Skinport respondeu 403"); }, fetch: (async () => new Response("", { status: 503 })) as unknown as typeof globalThis.fetch });
     await expect(get()).rejects.toThrow("403");
   });
-  it("Skinport working stays the source in BRL", async () => {
-    const get = createCatalog({ skinport: async () => ({ rows: [], fetchedAt: 1, stale: false }) });
-    expect(await get()).toMatchObject({ source: "skinport", currency: "BRL" });
+  const row = (currency: "USD" | "BRL") => ({ name: "X", currency, min: 1, quantity: 1 }) as unknown as import("./sources.server").SkinRow;
+  it("Skinport working stays the source in USD", async () => {
+    const get = createCatalog({ skinport: async () => ({ rows: [row("USD")], fetchedAt: 1, stale: false }) });
+    expect(await get()).toMatchObject({ source: "skinport", currency: "USD" });
+  });
+  it("an old BRL cache is never served as USD; falls back to OpenSkin", async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify(body), { status: 200 }));
+    const get = createCatalog({ skinport: async () => ({ rows: [row("BRL")], fetchedAt: 1, stale: true }), fetch: fetch as unknown as typeof globalThis.fetch });
+    const r = await get();
+    expect(r.source).toBe("openskin");
+    expect(r.rows.every((x) => x.currency === "USD")).toBe(true);
+  });
+  it("direct Skinport requests USD", async () => {
+    const { get, fetch } = setup(() => new Response(JSON.stringify([item]), { status: 200 }));
+    const r = await get();
+    expect(String((fetch.mock.calls[0] as unknown[])[0])).toContain("currency=USD");
+    expect(r.rows[0]?.currency).toBe("USD");
   });
 });

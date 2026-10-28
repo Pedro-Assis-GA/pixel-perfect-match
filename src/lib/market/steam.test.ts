@@ -1,8 +1,9 @@
+import { parseUSD } from "./parse";
 import { describe, expect, it, vi } from "vitest";
 import { createSteamClient, PRICE_TTL } from "./steam";
 
 const ok = (b: unknown) => new Response(JSON.stringify(b), { status: 200 });
-const ov = { success: true, lowest_price: "R$ 10,50", median_price: "R$ 11,00", volume: "1,234" };
+const ov = { success: true, lowest_price: "$10.50", median_price: "$11.00", volume: "1,234" };
 const search = { results: [{ hash_name: "AK", asset_description: { icon_url: "abc" } }] };
 
 function setup(handler: (url: string) => Response | Promise<Response>) {
@@ -80,5 +81,12 @@ describe("steam client", () => {
     const r = await c.getQuote("X");
     expect(r.status).toBe("not_found");
     expect(r.quote).toBeNull();
+  });
+});
+
+describe("steam USD", () => {
+  it("parses Steam USD strings (currency=1)", () => {
+    expect(parseUSD("$1,163.55")).toBe(1163.55);
+    expect(parseUSD("$0.03 USD")).toBe(0.03);
   });
 });

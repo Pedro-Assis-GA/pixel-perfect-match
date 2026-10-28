@@ -18,6 +18,7 @@ export type OpenSkinStatus = "ok" | "stale" | "unavailable" | "not_found";
 export interface OpenSkinResult {
   markets: OpenSkinMarket[];
   status: OpenSkinStatus;
+  icon?: string | null; // item image URL reported by OpenSkin
   fetchedAt: number | null;
   retryAt: number | null;
 }
@@ -49,20 +50,20 @@ export function parseOpenSkin(body: unknown): OpenSkinMarket[] {
 export function createOpenSkinClient(opts: { fetch?: typeof fetch; now?: () => number } = {}) {
   const f = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   const now = opts.now ?? Date.now;
-  const cache = new Map<string, { markets: OpenSkinMarket[]; at: number }>();
+  const cache = new Map<string, { markets: OpenSkinMarket[]; at: number; icon?: string | null }>();
   const failedUntil = new Map<string, number>();
 
   const fallback = (name: string, retryAt: number): OpenSkinResult => {
     const c = cache.get(name);
     return c?.markets.length
-      ? { markets: c.markets, status: "stale", fetchedAt: c.at, retryAt }
+      ? { markets: c.markets, icon: c.icon ?? null, status: "stale", fetchedAt: c.at, retryAt }
       : { markets: [], status: "unavailable", fetchedAt: null, retryAt };
   };
 
   return async function getPrices(name: string): Promise<OpenSkinResult> {
     const c = cache.get(name);
     if (c && now() - c.at < OPENSKIN_TTL)
-      return { markets: c.markets, status: c.markets.length ? "ok" : "not_found", fetchedAt: c.at, retryAt: null };
+      return { markets: c.markets, icon: c.icon ?? null, status: c.markets.length ? "ok" : "not_found", fetchedAt: c.at, retryAt: null };
     const fu = failedUntil.get(name);
     if (fu && now() < fu) return fallback(name, fu);
     try {
@@ -72,10 +73,12 @@ export function createOpenSkinClient(opts: { fetch?: typeof fetch; now?: () => n
         return { markets: [], status: "not_found", fetchedAt: now(), retryAt: null };
       }
       if (!r.ok) throw new Error(`OpenSkin ${r.status}`);
-      const markets = parseOpenSkin(await r.json());
-      cache.set(name, { markets, at: now() });
+      const body = (await r.json()) as { icon_url?: unknown };
+      const markets = parseOpenSkin(body);
+      const icon = typeof body?.icon_url === "string" && body.icon_url.startsWith("https://") ? body.icon_url : null;
+      cache.set(name, { markets, at: now(), icon });
       failedUntil.delete(name);
-      return { markets, status: markets.length ? "ok" : "not_found", fetchedAt: now(), retryAt: null };
+      return { markets, icon, status: markets.length ? "ok" : "not_found", fetchedAt: now(), retryAt: null };
     } catch {
       const ra = now() + FAIL_BACKOFF;
       failedUntil.set(name, ra);

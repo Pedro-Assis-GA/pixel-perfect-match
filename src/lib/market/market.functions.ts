@@ -47,16 +47,17 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async () =
     c.listings += r.quantity;
   }
   // "Opportunity" candidates need liquidity (≥ 20 listings) and a meaningful price,
-  // so a single stray listing never ranks. Still labelled as candidates, not certainties.
+  // so a single stray listing never ranks. Thresholds are USD (both min and suggested
+  // come from the same source/currency). Still labelled as candidates, not certainties.
   const opportunities = listed
-    .filter((r) => r.suggested && r.suggested >= 20 && r.quantity >= 20)
+    .filter((r) => r.suggested && r.suggested >= 4 && r.quantity >= 20 && r.min! >= 1)
     .map((r) => ({ ...r, discountPct: pctDiff(r.min!, r.suggested!) }))
-    .filter((r) => (r.discountPct ?? 0) <= -10)
+    .filter((r) => (r.discountPct ?? 0) <= -10 && (r.discountPct ?? 0) > -80) // >80% off is more likely bad data than a deal
     .sort((a, b) => a.discountPct! - b.discountPct!)
     .slice(0, 8);
   const mostListed = [...listed].sort((a, b) => b.quantity - a.quantity).slice(0, 8);
   const recent = [...listed]
-    .filter((r) => (r.suggested ?? 0) >= 50)
+    .filter((r) => (r.suggested ?? 0) >= 10)
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, 8);
   return {
@@ -82,7 +83,7 @@ export const getItem = createServerFn({ method: "GET" })
       getSkinportItems(),
       getSkinportHistory(data.name).catch(() => null),
       getSteamQuote(data.name).catch(() => ({ quote: null, status: "unavailable" as const, fetchedAt: null, retryAt: null })),
-      getOpenSkinPrices(data.name).catch(() => ({ markets: [], status: "unavailable" as const, fetchedAt: null, retryAt: null })),
+      getOpenSkinPrices(data.name).catch(() => ({ markets: [], icon: null, status: "unavailable" as const, fetchedAt: null, retryAt: null })),
     ]);
     const found = rows.find((r) => r.name === data.name) ?? null;
     const skinport = source === "openskin" ? null : found;

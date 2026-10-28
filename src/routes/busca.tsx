@@ -87,7 +87,7 @@ function SearchPage() {
               {EXTERIORS.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </Field>
-          <Field label="Preço (R$)">
+          <Field label="Preço (US$)">
             <div className="flex gap-2">
               <input type="number" min={0} placeholder="mín" defaultValue={sp.min} key={`min${sp.min}`} className="inp" onBlur={(e) => set({ min: e.target.value ? Number(e.target.value) : undefined })} />
               <input type="number" min={0} placeholder="máx" defaultValue={sp.max} key={`max${sp.max}`} className="inp" onBlur={(e) => set({ max: e.target.value ? Number(e.target.value) : undefined })} />

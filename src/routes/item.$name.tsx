@@ -5,7 +5,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recha
 import { AppShell } from "@/components/market/AppShell";
 import { FavButton, Money, Pct, SkinportStaleNotice, Updated } from "@/components/market/bits";
 import { getItem } from "@/lib/market/market.functions";
-import { brl, CATEGORY_LABEL, effectiveBuyCost, FEES, netAfterSale, pctDiff } from "@/lib/market/parse";
+import { usd, CATEGORY_LABEL, effectiveBuyCost, FEES, netAfterSale, pctDiff } from "@/lib/market/parse";
 
 const itemQ = (name: string) =>
   queryOptions({ queryKey: ["item", name], queryFn: () => getItem({ data: { name } }), staleTime: 60_000 });
@@ -50,6 +50,7 @@ function ItemPage() {
       extra: st?.volume24h != null ? `${st.volume24h} vendas/24h` : null,
     },
   ];
+  const hasDirect = rows.some((r) => r.price != null);
   const cheapest = Math.min(...rows.map((r) => r.price ?? Infinity));
 
   const periods = data.history
@@ -66,8 +67,8 @@ function ItemPage() {
       <Link to="/busca" className="text-xs text-muted-foreground hover:text-primary">← Pesquisa</Link>
       <div className="mt-3 grid gap-6 lg:grid-cols-[320px_1fr]">
         <div className="panel flex aspect-square items-center justify-center bg-hero p-6">
-          {st?.image ? (
-            <img src={st.image} alt={name} className="max-h-full max-w-full object-contain drop-shadow-2xl" onError={(e) => (e.currentTarget.style.display = "none")} />
+          {(st?.image ?? data.openskin.icon) ? (
+            <img src={(st?.image ?? data.openskin.icon)!} alt={name} className="max-h-full max-w-full object-contain drop-shadow-2xl" onError={(e) => (e.currentTarget.style.display = "none")} />
           ) : (
             <span className="text-xs text-muted-foreground">Imagem indisponível</span>
           )}
@@ -96,11 +97,14 @@ function ItemPage() {
         </div>
       </div>
 
+      {!hasDirect && <div className="mt-8" />}
+      {!hasDirect && <OpenSkinSection o={data.openskin} />}
+      {hasDirect ? (
       <section className="panel mt-8 overflow-x-auto p-5">
         <h2 className="text-xl font-bold">Comparador entre marketplaces</h2>
         <SkinportStaleNotice stale={data.skinportStale} ts={data.fetchedAt} source={data.source} />
         <SteamNotice status={data.steamStatus} fetchedAt={data.steamFetchedAt} retryAt={data.steamRetryAt} />
-        <p className="mb-4 text-xs text-muted-foreground">Preços em BRL informados pelas próprias fontes (sem conversão). Taxas públicas de cada plataforma.</p>
+        <p className="mb-4 text-xs text-muted-foreground">Preços agregados em USD informados pelas próprias fontes (menor anúncio, não um anúncio individual).  Taxas públicas de cada plataforma.</p>
         <table className="w-full min-w-[720px] text-sm">
           <thead className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
             <tr className="border-b border-border">
@@ -131,8 +135,15 @@ function ItemPage() {
           <li className="flex gap-1"><Info className="mt-0.5 h-3 w-3 shrink-0" />Custos de saque, IOF e tempo de trade-lock não estão incluídos.</li>
         </ul>
       </section>
+      ) : (
+        <section className="panel mt-6 p-4 text-xs text-muted-foreground">
+          <SkinportStaleNotice stale={data.skinportStale} ts={data.fetchedAt} source={data.source} />
+          <SteamNotice status={data.steamStatus} fetchedAt={data.steamFetchedAt} retryAt={data.steamRetryAt} />
+          Comparador com taxas indisponível: sem preços diretos da Skinport ou da Steam no momento.
+        </section>
+      )}
 
-      <OpenSkinSection o={data.openskin} />
+      {hasDirect && <OpenSkinSection o={data.openskin} />}
 
       <section className="panel mt-6 p-5">
         <h2 className="text-xl font-bold">Histórico de vendas (Skinport)</h2>
@@ -143,9 +154,9 @@ function ItemPage() {
               {periods.map(([label, p]) => (
                 <div key={label} className="rounded-sm border border-border p-3">
                   <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-                  <div className="num mt-1 text-lg font-bold">{p.median != null ? brl.format(p.median) : "—"}</div>
+                  <div className="num mt-1 text-lg font-bold">{p.median != null ? usd.format(p.median) : "—"}</div>
                   <div className="text-xs text-muted-foreground">mediana · {p.volume} vendas</div>
-                  <div className="num mt-1 text-xs text-muted-foreground">{p.min != null ? `${brl.format(p.min)} – ${brl.format(p.max!)}` : "sem vendas"}</div>
+                  <div className="num mt-1 text-xs text-muted-foreground">{p.min != null ? `${usd.format(p.min)} – ${usd.format(p.max!)}` : "sem vendas"}</div>
                 </div>
               ))}
             </div>
@@ -154,7 +165,7 @@ function ItemPage() {
                 <BarChart data={periods.map(([l, p]) => ({ l, mediana: p.median, media: p.avg })).reverse()}>
                   <XAxis dataKey="l" stroke="var(--muted-foreground)" fontSize={11} />
                   <YAxis stroke="var(--muted-foreground)" fontSize={11} />
-                  <Tooltip formatter={(v: number) => brl.format(v)} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)" }} cursor={{ fill: "var(--accent)" }} />
+                  <Tooltip formatter={(v: number) => usd.format(v)} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)" }} cursor={{ fill: "var(--accent)" }} />
                   <Bar dataKey="mediana" name="Mediana" fill="var(--chart-1)" />
                   <Bar dataKey="media" name="Média" fill="var(--chart-2)" />
                 </BarChart>
@@ -162,7 +173,7 @@ function ItemPage() {
             </div>
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">Sem vendas registradas suficientes para este item.</p>
+          <p className="text-sm text-muted-foreground">{data.history ? "Sem vendas registradas suficientes para este item." : "Histórico indisponível: a Skinport não respondeu à consulta."}</p>
         )}
       </section>
 
@@ -211,14 +222,13 @@ function SteamNotice({ status, fetchedAt, retryAt }: { status: string; fetchedAt
   );
 }
 
-const usd = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD" });
 function OpenSkinSection({ o }: { o: { markets: { market: string; ask: number | null; bid: number | null; median: number | null; listings: number | null; volume24h: number | null; currency: string; updatedAt: string | null; url: string | null }[]; status: string; fetchedAt: number | null } }) {
   const fmt = (v: number | null, c: string) => (v == null ? "—" : c === "USD" ? usd.format(v) : `${v.toFixed(2)} ${c}`);
   return (
     <section className="panel mt-6 overflow-x-auto p-5">
       <h2 className="text-xl font-bold">Outros marketplaces (via OpenSkin)</h2>
       <p className="mb-4 text-xs text-muted-foreground">
-        Preços agregados na <b>moeda original (USD)</b>, sem conversão para BRL. Não comparar diretamente com os valores em R$ acima.
+        Preços agregados em USD, como informados pela OpenSkin (menor anúncio e maior oferta de compra por marketplace, não anúncios individuais).
       </p>
       {o.status === "stale" && (
         <div role="status" className="mb-3 rounded-sm border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
