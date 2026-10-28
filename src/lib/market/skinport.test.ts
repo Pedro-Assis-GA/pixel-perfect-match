@@ -95,6 +95,6 @@ describe("catalog fallback", () => {
     const { get, fetch } = setup(() => new Response(JSON.stringify([item]), { status: 200 }));
     const r = await get();
     expect(String((fetch.mock.calls[0] as unknown[])[0])).toContain("currency=USD");
-    expect(r.rows[0].currency).toBe("USD");
+    expect(r.rows[0]?.currency).toBe("USD");
   });
 });

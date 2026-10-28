@@ -83,7 +83,7 @@ export const getItem = createServerFn({ method: "GET" })
       getSkinportItems(),
       getSkinportHistory(data.name).catch(() => null),
       getSteamQuote(data.name).catch(() => ({ quote: null, status: "unavailable" as const, fetchedAt: null, retryAt: null })),
-      getOpenSkinPrices(data.name).catch(() => ({ markets: [], status: "unavailable" as const, fetchedAt: null, retryAt: null })),
+      getOpenSkinPrices(data.name).catch(() => ({ markets: [], icon: null, status: "unavailable" as const, fetchedAt: null, retryAt: null })),
     ]);
     const found = rows.find((r) => r.name === data.name) ?? null;
     const skinport = source === "openskin" ? null : found;
