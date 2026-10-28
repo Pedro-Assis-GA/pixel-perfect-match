@@ -85,7 +85,7 @@ describe("catalog fallback", () => {
     expect(await get()).toMatchObject({ source: "skinport", currency: "USD" });
   });
   it("an old BRL cache is never served as USD; falls back to OpenSkin", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(osBody), { status: 200 }));
+    const fetch = vi.fn(async () => new Response(JSON.stringify(body), { status: 200 }));
     const get = createCatalog({ skinport: async () => ({ rows: [row("BRL")], fetchedAt: 1, stale: true }), fetch: fetch as unknown as typeof globalThis.fetch });
     const r = await get();
     expect(r.source).toBe("openskin");
