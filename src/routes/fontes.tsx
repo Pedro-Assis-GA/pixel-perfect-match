@@ -8,6 +8,8 @@ export const Route = createFileRoute("/fontes")({
       { name: "description", content: "Quais marketplaces de skins CS2 estão integrados e quais limitações existem." },
       { property: "og:title", content: "Fontes de dados — SkinScope" },
       { property: "og:description", content: "Status das integrações com marketplaces de skins CS2." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Sources,

@@ -10,6 +10,8 @@ export const Route = createFileRoute("/favoritos")({
       { name: "description", content: "Sua lista de observação de skins do CS2." },
       { property: "og:title", content: "Favoritos — SkinScope" },
       { property: "og:description", content: "Lista de observação de skins do CS2." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Favs,

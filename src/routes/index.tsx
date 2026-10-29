@@ -15,6 +15,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Compare preços reais de skins do CS2 entre Skinport e Steam, com taxas, histórico e oportunidades." },
       { property: "og:title", content: "SkinScope — Mercado de skins CS2" },
       { property: "og:description", content: "Preços reais, comparação de taxas e oportunidades no mercado de skins CS2." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(dashQ),
