@@ -31,6 +31,8 @@ export const Route = createFileRoute("/busca")({
       { name: "description", content: "Busque e filtre skins do CS2 por categoria, desgaste, StatTrak e preço com dados reais." },
       { property: "og:title", content: "Pesquisar skins CS2 — SkinScope" },
       { property: "og:description", content: "Filtros combináveis e preços reais de skins do CS2." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: SearchPage,
