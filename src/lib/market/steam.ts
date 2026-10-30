@@ -20,6 +20,7 @@ export interface SteamResult {
 }
 
 export const PRICE_TTL = 10 * 60 * 1000; // fresh window for a price
+export const MAX_STEAM_PRICE_AGE = 24 * 60 * 60 * 1000; // never reuse older prices
 export const IMAGE_TTL = 24 * 60 * 60 * 1000; // icons are stable, reuse for a day
 const NOT_FOUND_TTL = 30 * 60 * 1000;
 const FAIL_BACKOFF = 60 * 1000; // per-item wait after a non-429 failure
@@ -55,7 +56,16 @@ export function createSteamClient(opts: { fetch?: typeof fetch; now?: () => numb
 
   function fromCache(name: string, status: SteamStatus, retryAt: number | null): SteamResult {
     const c = prices.get(name);
-    if (c?.quote) return { quote: c.quote, status: "stale", fetchedAt: c.at, retryAt };
+    if (c?.quote) {
+      const age = now() - c.at;
+      if (age >= 0 && age <= MAX_STEAM_PRICE_AGE)
+        return { quote: c.quote, status: "stale", fetchedAt: c.at, retryAt };
+      // Keep the stable icon if available, but never return an expired price.
+      const imageOnly = c.quote.image
+        ? { ...c.quote, lowest: null, median: null, volume24h: null }
+        : null;
+      return { quote: imageOnly, status, fetchedAt: null, retryAt };
+    }
     return { quote: null, status, fetchedAt: null, retryAt };
   }
 
@@ -66,23 +76,36 @@ export function createSteamClient(opts: { fetch?: typeof fetch; now?: () => numb
     const needImage = !img || now() - img.at > IMAGE_TTL;
     try {
       const [ov, search] = await Promise.all([
-        getJson(`https://steamcommunity.com/market/priceoverview/?appid=730&currency=1&market_hash_name=${enc}`),
+        getJson(
+          `https://steamcommunity.com/market/priceoverview/?appid=730&currency=1&market_hash_name=${enc}`,
+        ),
         needImage
-          ? getJson(`https://steamcommunity.com/market/search/render/?appid=730&norender=1&count=5&query=${enc}`).catch(
-              (e) => (e instanceof RateLimited ? Promise.reject(e) : null),
-            )
+          ? getJson(
+              `https://steamcommunity.com/market/search/render/?appid=730&norender=1&count=5&query=${enc}`,
+            ).catch((e) => (e instanceof RateLimited ? Promise.reject(e) : null))
           : null,
       ]);
       strikes = 0;
       if (needImage) {
-        const hit = (search?.results ?? []).find((r: { hash_name: string }) => r.hash_name === name);
+        const hit = (search?.results ?? []).find(
+          (r: { hash_name: string }) => r.hash_name === name,
+        );
         const icon = hit?.asset_description?.icon_url;
-        if (icon) images.set(name, { url: `https://community.cloudflare.steamstatic.com/economy/image/${icon}/360fx360f`, at: now() });
+        if (icon)
+          images.set(name, {
+            url: `https://community.cloudflare.steamstatic.com/economy/image/${icon}/360fx360f`,
+            at: now(),
+          });
       }
       const image = images.get(name)?.url ?? null;
       if (!ov?.success) {
         prices.set(name, { quote: null, at: now() });
-        return { quote: image ? { lowest: null, median: null, volume24h: null, url, image } : null, status: "not_found", fetchedAt: now(), retryAt: null };
+        return {
+          quote: image ? { lowest: null, median: null, volume24h: null, url, image } : null,
+          status: "not_found",
+          fetchedAt: now(),
+          retryAt: null,
+        };
       }
       const quote: SteamQuote = {
         lowest: parseUSD(ov.lowest_price),

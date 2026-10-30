@@ -4,7 +4,12 @@ import { FEES, netAfterSale, parseBRL, parseMarketName, pctDiff } from "./parse"
 describe("market rules", () => {
   it("parses StatTrak knife with exterior", () => {
     const p = parseMarketName("★ StatTrak™ Karambit | Doppler (Factory New)");
-    expect(p).toMatchObject({ category: "Knife", stattrak: true, exterior: "Factory New", skin: "Doppler" });
+    expect(p).toMatchObject({
+      category: "Knife",
+      stattrak: true,
+      exterior: "Factory New",
+      skin: "Doppler",
+    });
   });
   it("Steam seller receives ~86.96% of listed price", () => {
     expect(netAfterSale(100, FEES.steam)).toBe(86.96);

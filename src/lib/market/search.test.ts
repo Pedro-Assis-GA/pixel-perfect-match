@@ -4,7 +4,17 @@ import { PAGE_SIZE, searchRows } from "./search";
 import type { SkinRow } from "./sources.server";
 
 const row = (name: string, min: number | null, quantity = 5): SkinRow => ({
-  name, ...parseMarketName(name), suggested: 100, min, median: null, mean: null, max: null, quantity, updatedAt: 0, url: "", currency: "BRL",
+  name,
+  ...parseMarketName(name),
+  suggested: 100,
+  min,
+  median: null,
+  mean: null,
+  max: null,
+  quantity,
+  updatedAt: 0,
+  url: "",
+  currency: "BRL",
 });
 const rows = [
   row("AK-47 | Redline (Field-Tested)", 115),
@@ -21,13 +31,17 @@ describe("search filters", () => {
     expect(searchRows(rows, {}).total).toBe(5);
   });
   it("category", () => {
-    expect(searchRows(rows, { category: "Knife" }).items.map((r) => r.name)).toEqual(["★ Karambit | Doppler (Factory New)"]);
+    expect(searchRows(rows, { category: "Knife" }).items.map((r) => r.name)).toEqual([
+      "★ Karambit | Doppler (Factory New)",
+    ]);
   });
   it("exterior", () => {
     expect(searchRows(rows, { exterior: "Factory New" }).total).toBe(2);
   });
   it("price range is inclusive on lowest listing", () => {
-    expect(searchRows(rows, { min: 115, max: 300, sort: "price_asc" }).items.map((r) => r.min)).toEqual([115, 200, 300]);
+    expect(
+      searchRows(rows, { min: 115, max: 300, sort: "price_asc" }).items.map((r) => r.min),
+    ).toEqual([115, 200, 300]);
   });
   it("StatTrak only / non-StatTrak", () => {
     expect(searchRows(rows, { stattrak: true }).total).toBe(1);
@@ -40,12 +54,22 @@ describe("search filters", () => {
     expect(searchRows(rows, { q: "redline field" }).total).toBe(2);
   });
   it("sorts by price ascending and descending", () => {
-    expect(searchRows(rows, { sort: "price_asc" }).items.map((r) => r.min)).toEqual([20, 115, 200, 300, 5000]);
-    expect(searchRows(rows, { sort: "price_desc" }).items.map((r) => r.min)).toEqual([5000, 300, 200, 115, 20]);
+    expect(searchRows(rows, { sort: "price_asc" }).items.map((r) => r.min)).toEqual([
+      20, 115, 200, 300, 5000,
+    ]);
+    expect(searchRows(rows, { sort: "price_desc" }).items.map((r) => r.min)).toEqual([
+      5000, 300, 200, 115, 20,
+    ]);
   });
   it("paginates 48 per page and keeps filter + sort on later pages", () => {
-    const many = Array.from({ length: 100 }, (_, i) => row(`AK-47 | Redline (Field-Tested) #${i}`, i + 1));
-    const p2 = searchRows([...many, row("AWP | X (Factory New)", 0.5)], { q: "redline", sort: "price_desc", page: 2 });
+    const many = Array.from({ length: 100 }, (_, i) =>
+      row(`AK-47 | Redline (Field-Tested) #${i}`, i + 1),
+    );
+    const p2 = searchRows([...many, row("AWP | X (Factory New)", 0.5)], {
+      q: "redline",
+      sort: "price_desc",
+      page: 2,
+    });
     expect(PAGE_SIZE).toBe(48);
     expect(p2.total).toBe(100);
     expect(p2.pages).toBe(3);

@@ -2,7 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { CATEGORIES, EXTERIORS, pctDiff } from "./parse";
 import { searchRows } from "./search";
-import { getSkinportHistory, getSkinportItems, getSteamQuote, getOpenSkinPrices } from "./sources.server";
+import {
+  getSkinportHistory,
+  getSkinportItems,
+  getSteamQuote,
+  getOpenSkinPrices,
+} from "./sources.server";
 
 export const searchSchema = z.object({
   q: z.string().max(100).optional(),
@@ -16,7 +21,6 @@ export const searchSchema = z.object({
   page: z.number().int().min(1).max(500).optional(),
 });
 export type SearchParams = z.infer<typeof searchSchema>;
-
 
 export const searchSkins = createServerFn({ method: "GET" })
   .inputValidator((d: SearchParams) => searchSchema.parse(d))
@@ -79,22 +83,57 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async () =
 export const getItem = createServerFn({ method: "GET" })
   .inputValidator((d: { name: string }) => z.object({ name: z.string().min(1).max(200) }).parse(d))
   .handler(async ({ data }) => {
-    const [{ rows, fetchedAt, stale: skinportStale, source }, history, steam, openskin] = await Promise.all([
-      getSkinportItems(),
-      getSkinportHistory(data.name).catch(() => null),
-      getSteamQuote(data.name).catch(() => ({ quote: null, status: "unavailable" as const, fetchedAt: null, retryAt: null })),
-      getOpenSkinPrices(data.name).catch(() => ({ markets: [], icon: null, status: "unavailable" as const, fetchedAt: null, retryAt: null })),
-    ]);
+    const [{ rows, fetchedAt, stale: skinportStale, source }, history, steam, openskin] =
+      await Promise.all([
+        getSkinportItems(),
+        getSkinportHistory(data.name).catch(() => null),
+        getSteamQuote(data.name).catch(() => ({
+          quote: null,
+          status: "unavailable" as const,
+          fetchedAt: null,
+          retryAt: null,
+        })),
+        getOpenSkinPrices(data.name).catch(() => ({
+          markets: [],
+          icon: null,
+          status: "unavailable" as const,
+          fetchedAt: null,
+          retryAt: null,
+        })),
+      ]);
     const found = rows.find((r) => r.name === data.name) ?? null;
     const skinport = source === "openskin" ? null : found;
     const base = found ? `${found.weapon} | ${found.skin}` : null;
     const variants = base
       ? rows
-          .filter((r) => r.name !== data.name && r.weapon === found!.weapon && r.skin === found!.skin && r.min != null)
-          .map((r) => ({ name: r.name, min: r.min, quantity: r.quantity, exterior: r.exterior, stattrak: r.stattrak, currency: r.currency }))
+          .filter(
+            (r) =>
+              r.name !== data.name &&
+              r.weapon === found!.weapon &&
+              r.skin === found!.skin &&
+              r.min != null,
+          )
+          .map((r) => ({
+            name: r.name,
+            min: r.min,
+            quantity: r.quantity,
+            exterior: r.exterior,
+            stattrak: r.stattrak,
+            currency: r.currency,
+          }))
       : [];
     return {
-      name: data.name, skinport, history, source, variants, fetchedAt, skinportStale,
-      steam: steam.quote, steamStatus: steam.status, steamFetchedAt: steam.fetchedAt, steamRetryAt: steam.retryAt, openskin,
+      name: data.name,
+      skinport,
+      history,
+      source,
+      variants,
+      fetchedAt,
+      skinportStale,
+      steam: steam.quote,
+      steamStatus: steam.status,
+      steamFetchedAt: steam.fetchedAt,
+      steamRetryAt: steam.retryAt,
+      openskin,
     };
   });

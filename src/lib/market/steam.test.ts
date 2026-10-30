@@ -55,7 +55,9 @@ describe("steam client", () => {
   it("honors Retry-After and resumes after it", async () => {
     let limited = true;
     const { c, tick } = setup((u) =>
-      limited ? new Response("", { status: 429, headers: { "retry-after": "120" } }) : ok(u.includes("priceoverview") ? ov : search),
+      limited
+        ? new Response("", { status: 429, headers: { "retry-after": "120" } })
+        : ok(u.includes("priceoverview") ? ov : search),
     );
     expect((await c.getQuote("AK")).status).toBe("rate_limited");
     limited = false;

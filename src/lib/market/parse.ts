@@ -41,14 +41,43 @@ export const CATEGORY_LABEL: Record<Category, string> = {
 };
 
 const WEAPONS: Record<string, Category> = {
-  "AK-47": "Rifle", M4A4: "Rifle", "M4A1-S": "Rifle", FAMAS: "Rifle", "Galil AR": "Rifle",
-  AUG: "Rifle", "SG 553": "Rifle",
-  AWP: "Sniper", SSG08: "Sniper", "SSG 08": "Sniper", SCAR20: "Sniper", "SCAR-20": "Sniper", G3SG1: "Sniper",
-  "Desert Eagle": "Pistol", "USP-S": "Pistol", "Glock-18": "Pistol", P250: "Pistol", "Five-SeveN": "Pistol",
-  "Tec-9": "Pistol", "CZ75-Auto": "Pistol", "Dual Berettas": "Pistol", P2000: "Pistol", "R8 Revolver": "Pistol", "Zeus x27": "Pistol",
-  "MAC-10": "SMG", MP9: "SMG", MP7: "SMG", "MP5-SD": "SMG", "UMP-45": "SMG", P90: "SMG", "PP-Bizon": "SMG",
-  Nova: "Shotgun", XM1014: "Shotgun", "Sawed-Off": "Shotgun", "MAG-7": "Shotgun",
-  M249: "Machinegun", Negev: "Machinegun",
+  "AK-47": "Rifle",
+  M4A4: "Rifle",
+  "M4A1-S": "Rifle",
+  FAMAS: "Rifle",
+  "Galil AR": "Rifle",
+  AUG: "Rifle",
+  "SG 553": "Rifle",
+  AWP: "Sniper",
+  SSG08: "Sniper",
+  "SSG 08": "Sniper",
+  SCAR20: "Sniper",
+  "SCAR-20": "Sniper",
+  G3SG1: "Sniper",
+  "Desert Eagle": "Pistol",
+  "USP-S": "Pistol",
+  "Glock-18": "Pistol",
+  P250: "Pistol",
+  "Five-SeveN": "Pistol",
+  "Tec-9": "Pistol",
+  "CZ75-Auto": "Pistol",
+  "Dual Berettas": "Pistol",
+  P2000: "Pistol",
+  "R8 Revolver": "Pistol",
+  "Zeus x27": "Pistol",
+  "MAC-10": "SMG",
+  MP9: "SMG",
+  MP7: "SMG",
+  "MP5-SD": "SMG",
+  "UMP-45": "SMG",
+  P90: "SMG",
+  "PP-Bizon": "SMG",
+  Nova: "Shotgun",
+  XM1014: "Shotgun",
+  "Sawed-Off": "Shotgun",
+  "MAG-7": "Shotgun",
+  M249: "Machinegun",
+  Negev: "Machinegun",
 };
 
 export interface ParsedName {
@@ -86,7 +115,13 @@ export function parseMarketName(name: string): ParsedName {
   else if (isStar && /Gloves|Wraps/.test(n)) category = "Gloves";
   else if (isStar) category = "Knife";
   else if (weapon && WEAPONS[weapon]) category = WEAPONS[weapon];
-  else if (skin && /SWAT|FBI|SAS|Guerrilla|Phoenix|Sabre|Elite Crew|NSWC|TACP|Gendarmerie|NZSAS|SEAL|Professional|Brazilian|KSK|Spetsnaz|Cavalry/.test(skin)) category = "Agent";
+  else if (
+    skin &&
+    /SWAT|FBI|SAS|Guerrilla|Phoenix|Sabre|Elite Crew|NSWC|TACP|Gendarmerie|NZSAS|SEAL|Professional|Brazilian|KSK|Spetsnaz|Cavalry/.test(
+      skin,
+    )
+  )
+    category = "Agent";
 
   return { weapon, skin, exterior, stattrak, souvenir, category };
 }
@@ -145,7 +180,10 @@ export function parseUSD(s: string | undefined | null): number | null {
 /** Parses Steam formatted BRL strings like "R$ 1.163,55". */
 export function parseBRL(s: string | undefined | null): number | null {
   if (!s) return null;
-  const cleaned = s.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+  const cleaned = s
+    .replace(/[^\d,.-]/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
   const v = parseFloat(cleaned);
   return isFinite(v) ? v : null;
 }

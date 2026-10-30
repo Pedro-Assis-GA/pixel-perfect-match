@@ -32,11 +32,16 @@ export function searchRows(rows: SkinRow[], data: SearchParams) {
   const sort = data.sort ?? "liquidity";
   withD.sort((a, b) => {
     switch (sort) {
-      case "price_asc": return a.min! - b.min!;
-      case "price_desc": return b.min! - a.min!;
-      case "discount": return (a.discountPct ?? 999) - (b.discountPct ?? 999);
-      case "updated": return b.updatedAt - a.updatedAt;
-      default: return b.quantity - a.quantity;
+      case "price_asc":
+        return a.min! - b.min!;
+      case "price_desc":
+        return b.min! - a.min!;
+      case "discount":
+        return (a.discountPct ?? 999) - (b.discountPct ?? 999);
+      case "updated":
+        return b.updatedAt - a.updatedAt;
+      default:
+        return b.quantity - a.quantity;
     }
   });
   const page = data.page ?? 1;

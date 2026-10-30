@@ -7,16 +7,34 @@ import { cn } from "@/lib/utils";
 export function Pct({ v, className }: { v: number | null | undefined; className?: string }) {
   if (v == null) return <span className="text-muted-foreground">—</span>;
   return (
-    <span className={cn("num", v < 0 ? "text-success" : v > 0 ? "text-destructive" : "text-muted-foreground", className)}>
+    <span
+      className={cn(
+        "num",
+        v < 0 ? "text-success" : v > 0 ? "text-destructive" : "text-muted-foreground",
+        className,
+      )}
+    >
       {v > 0 ? "+" : ""}
       {v.toFixed(1)}%
     </span>
   );
 }
 
-export function Money({ v, className, currency = "USD" }: { v: number | null | undefined; className?: string; currency?: string | undefined }) {
+export function Money({
+  v,
+  className,
+  currency = "USD",
+}: {
+  v: number | null | undefined;
+  className?: string;
+  currency?: string | undefined;
+}) {
   if (v == null) return <span className="text-muted-foreground">indisponível</span>;
-  return <span className={cn("num", className)}>{currency === "USD" ? usd.format(v) : `${v.toFixed(2)} ${currency}`}</span>;
+  return (
+    <span className={cn("num", className)}>
+      {currency === "USD" ? usd.format(v) : `${v.toFixed(2)} ${currency}`}
+    </span>
+  );
 }
 
 export function Updated({ ts }: { ts: number }) {
@@ -25,7 +43,13 @@ export function Updated({ ts }: { ts: number }) {
   const stale = min > 60;
   return (
     <span className={cn("text-xs", stale ? "text-warning" : "text-muted-foreground")}>
-      {min < 1 ? "agora" : min < 60 ? `há ${min} min` : min < 1440 ? `há ${Math.round(min / 60)} h` : `há ${Math.round(min / 1440)} d`}
+      {min < 1
+        ? "agora"
+        : min < 60
+          ? `há ${min} min`
+          : min < 1440
+            ? `há ${Math.round(min / 60)} h`
+            : `há ${Math.round(min / 1440)} d`}
       {stale && " · desatualizado"}
     </span>
   );
@@ -65,7 +89,11 @@ export interface RowLike {
 
 export function SkinCard({ r }: { r: RowLike }) {
   return (
-    <Link to="/item/$name" params={{ name: r.name }} className="panel group block p-4 transition-colors hover:border-primary">
+    <Link
+      to="/item/$name"
+      params={{ name: r.name }}
+      className="panel group block p-4 transition-colors hover:border-primary"
+    >
       <div className="flex items-start justify-between gap-2">
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
           {CATEGORY_LABEL[r.category]}
@@ -80,7 +108,9 @@ export function SkinCard({ r }: { r: RowLike }) {
       </h3>
       <div className="mt-3 flex items-end justify-between">
         <div>
-          <div className="text-[10px] uppercase text-muted-foreground">Menor anúncio · Skinport (USD)</div>
+          <div className="text-[10px] uppercase text-muted-foreground">
+            Menor anúncio · Skinport (USD)
+          </div>
           <Money v={r.min} currency={r.currency} className="text-lg font-bold text-primary" />
         </div>
         <div className="text-right text-xs">
@@ -96,17 +126,39 @@ export function SkinCard({ r }: { r: RowLike }) {
   );
 }
 
-export function SkinportStaleNotice({ stale, ts, source }: { stale?: boolean; ts: number; source?: string | undefined }) {
+export function SkinportStaleNotice({
+  stale,
+  ts,
+  source,
+}: {
+  stale?: boolean;
+  ts: number;
+  source?: string | undefined;
+}) {
   if (source === "openskin")
     return (
-      <div role="status" className={cn("mb-4 rounded-sm border p-2 text-xs", stale ? "border-warning/40 bg-warning/10 text-warning" : "border-border bg-muted/40 text-muted-foreground")}>
-        Fonte alternativa: preços da Skinport reportados pela OpenSkin (USD). Consulta à OpenSkin <Updated ts={ts} />{stale ? " — nova consulta falhou, dados podem estar desatualizados" : ""}.
+      <div
+        role="status"
+        className={cn(
+          "mb-4 rounded-sm border p-2 text-xs",
+          stale
+            ? "border-warning/40 bg-warning/10 text-warning"
+            : "border-border bg-muted/40 text-muted-foreground",
+        )}
+      >
+        Fonte alternativa: preços da Skinport reportados pela OpenSkin (USD). Consulta à OpenSkin{" "}
+        <Updated ts={ts} />
+        {stale ? " — nova consulta falhou, dados podem estar desatualizados" : ""}.
       </div>
     );
   if (!stale) return null;
   return (
-    <div role="status" className="mb-4 rounded-sm border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
-      Skinport indisponível no momento. Exibindo os últimos dados obtidos (<Updated ts={ts} />), que podem não refletir os preços atuais.
+    <div
+      role="status"
+      className="mb-4 rounded-sm border border-warning/40 bg-warning/10 p-2 text-xs text-warning"
+    >
+      Skinport indisponível no momento. Exibindo os últimos dados obtidos (<Updated ts={ts} />
+      ), que podem não refletir os preços atuais.
     </div>
   );
 }

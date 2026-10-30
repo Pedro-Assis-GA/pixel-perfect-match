@@ -17,7 +17,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-hero">
       <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-4 py-3">
-          <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold tracking-wider">
+          <Link
+            to="/"
+            className="flex items-center gap-2 font-display text-lg font-bold tracking-wider"
+          >
             <Crosshair className="h-5 w-5 text-primary" />
             SKIN<span className="text-primary">SCOPE</span>
           </Link>
@@ -38,7 +41,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
       <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
       <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">
-        Somente leitura · Dados de Skinport e Steam Community Market · Não é recomendação de investimento
+        Somente leitura · Dados de Skinport e Steam Community Market · Não é recomendação de
+        investimento
       </footer>
     </div>
   );
@@ -56,7 +60,9 @@ function GlobalSearch() {
     clearTimeout(t.current);
     if (q.trim().length < 2) return setItems([]);
     t.current = setTimeout(() => {
-      suggest({ data: { q } }).then(setItems).catch(() => setItems([]));
+      suggest({ data: { q } })
+        .then(setItems)
+        .catch(() => setItems([]));
     }, 250);
   }, [q, suggest]);
 
