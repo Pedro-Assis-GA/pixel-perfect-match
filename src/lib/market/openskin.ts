@@ -26,6 +26,7 @@ export interface OpenSkinResult {
 export const OPENSKIN_TTL = 5 * 60 * 1000; // matches their CDN max-age=300
 export const MAX_OPENSKIN_CACHE_AGE = 24 * 60 * 60 * 1000;
 const FAIL_BACKOFF = 2 * 60 * 1000;
+const MAX_CACHE_KEYS = 64; // cap per-item cache inside a Cloudflare Worker isolate
 const LABEL: Record<string, string> = {
   steam: "Steam",
   skinport: "Skinport",
@@ -76,6 +77,21 @@ export function createOpenSkinClient(opts: { fetch?: typeof fetch; now?: () => n
   const cache = new Map<string, { markets: OpenSkinMarket[]; at: number; icon?: string | null }>();
   const failedUntil = new Map<string, number>();
 
+  function remember(
+    name: string,
+    value: { markets: OpenSkinMarket[]; at: number; icon?: string | null },
+  ) {
+    cache.delete(name);
+    cache.set(name, value);
+    while (cache.size > MAX_CACHE_KEYS) cache.delete(cache.keys().next().value!);
+  }
+
+  function block(name: string, until: number) {
+    failedUntil.delete(name);
+    failedUntil.set(name, until);
+    while (failedUntil.size > MAX_CACHE_KEYS) failedUntil.delete(failedUntil.keys().next().value!);
+  }
+
   const fallback = (name: string, retryAt: number): OpenSkinResult => {
     const c = cache.get(name);
     const age = c ? now() - c.at : Infinity;
@@ -101,7 +117,7 @@ export function createOpenSkinClient(opts: { fetch?: typeof fetch; now?: () => n
         headers: { Accept: "application/json" },
       });
       if (r.status === 404) {
-        cache.set(name, { markets: [], at: now() });
+        remember(name, { markets: [], at: now() });
         return { markets: [], status: "not_found", fetchedAt: now(), retryAt: null };
       }
       if (!r.ok) throw new Error(`OpenSkin ${r.status}`);
@@ -111,7 +127,7 @@ export function createOpenSkinClient(opts: { fetch?: typeof fetch; now?: () => n
         typeof body?.icon_url === "string" && body.icon_url.startsWith("https://")
           ? body.icon_url
           : null;
-      cache.set(name, { markets, at: now(), icon });
+      remember(name, { markets, at: now(), icon });
       failedUntil.delete(name);
       return {
         markets,
@@ -122,7 +138,7 @@ export function createOpenSkinClient(opts: { fetch?: typeof fetch; now?: () => n
       };
     } catch {
       const ra = now() + FAIL_BACKOFF;
-      failedUntil.set(name, ra);
+      block(name, ra);
       return fallback(name, ra);
     }
   };

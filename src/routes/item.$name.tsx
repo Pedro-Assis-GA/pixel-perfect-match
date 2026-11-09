@@ -80,20 +80,52 @@ function ItemPage() {
     : null;
   const markets = usableOpenSkinMarkets(data.openskin.markets, data.openskin.fetchedAt, nowMs);
   const openSkin = { ...data.openskin, markets };
+  // Prices reported by the aggregator are NOT direct Skinport quotations.
+  const skinportViaOpenSkin = markets.find((m) => m.market === "Skinport") ?? null;
+  const reportedAsk =
+    skinportViaOpenSkin?.ask != null && skinportViaOpenSkin.ask > 0
+      ? skinportViaOpenSkin.ask
+      : null;
   const image = st?.image ?? data.openskin.icon;
   const hasAlternatives = hasAggregatePrices(markets);
   const indicators = itemIndicators(sp, st, markets);
-  const aggregatedIndicators = indicators[0]?.source === "openskin";
+  // Keep the two Skinport cards useful when a direct Steam quote is present,
+  // while clearly identifying the source as OpenSkin.
+  if (!sp && reportedAsk != null && indicators.some((i) => i.source === "direct")) {
+    indicators[0] = {
+      market: "Skinport (via OpenSkin)",
+      metric: "ask",
+      value: reportedAsk,
+      source: "openskin",
+      updatedAt: skinportViaOpenSkin?.updatedAt ?? null,
+    };
+    indicators[1] = {
+      market: "Skinport (via OpenSkin)",
+      metric: "median",
+      value: skinportViaOpenSkin?.median ?? null,
+      source: "openskin",
+      updatedAt: skinportViaOpenSkin?.updatedAt ?? null,
+    };
+  }
 
   const rows = [
     {
-      market: "Skinport",
-      price: sp?.min ?? null,
+      market: sp ? "Skinport" : "Skinport (via OpenSkin)",
+      price: sp?.min ?? reportedAsk,
       fee: FEES.skinport,
-      url: sp?.url,
-      ts: sp?.min != null ? sp.updatedAt * 1000 : null,
-      timeLabel: "Atualização da fonte",
-      extra: sp ? `${sp.quantity} anúncios` : null,
+      url: sp?.url ?? skinportViaOpenSkin?.url ?? null,
+      ts:
+        sp?.min != null
+          ? sp.updatedAt * 1000
+          : reportedAsk != null && skinportViaOpenSkin?.updatedAt
+            ? Date.parse(skinportViaOpenSkin.updatedAt)
+            : null,
+      timeLabel: sp ? "Atualização direta" : "Atualização informada pela OpenSkin",
+      extra: sp
+        ? `${sp.quantity} anúncios`
+        : skinportViaOpenSkin?.listings != null
+          ? `${skinportViaOpenSkin.listings} anúncios (OpenSkin)`
+          : null,
     },
     {
       market: "Steam Market",
@@ -105,7 +137,7 @@ function ItemPage() {
       extra: st?.volume24h != null ? `${st.volume24h} vendas/24h` : null,
     },
   ];
-  const hasDirect = rows.some((r) => r.price != null);
+  const hasComparable = rows.some((r) => r.price != null);
   const cheapest = directPriceComparisonBaseline(rows.map((r) => r.price));
 
   const periods = data.history
@@ -147,9 +179,8 @@ function ItemPage() {
             </p>
           )}
           <p className="mt-5 text-xs text-muted-foreground">
-            {aggregatedIndicators
-              ? "Dados agregados via OpenSkin · USD"
-              : "Consulta direta às fontes · USD"}
+            Steam: consulta direta quando disponível · Skinport e outros marketplaces via OpenSkin ·
+            USD
           </p>
           <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
             {indicators.map((i, index) => (
@@ -191,8 +222,8 @@ function ItemPage() {
         </div>
       </div>
 
-      {!hasDirect && <div className="mt-8" />}
-      {!hasDirect && (
+      {!hasComparable && <div className="mt-8" />}
+      {!hasComparable && (
         <OpenSkinSection
           o={openSkin}
           hiddenOldPrices={data.openskin.markets.length > 0 && markets.length === 0}
@@ -208,7 +239,7 @@ function ItemPage() {
           }
         />
       )}
-      {hasDirect ? (
+      {hasComparable ? (
         <section className="panel mt-8 overflow-x-auto p-5">
           <h2 className="text-xl font-bold">Comparador entre marketplaces</h2>
           <SkinportStaleNotice
@@ -223,11 +254,12 @@ function ItemPage() {
             hasAlternatives={hasAlternatives}
           />
           <p className="mb-4 text-xs text-muted-foreground">
-            Preços agregados em USD informados pelas próprias fontes (menor anúncio, não um anúncio
-            individual). Taxas públicas de cada plataforma. A atualização da Skinport e a consulta
-            direta à Steam usam horários diferentes.
+            Valores em USD: Steam consultada diretamente quando disponível; preços da Skinport podem
+            ser agregados e reportados pela OpenSkin. Datas e cobertura podem ser diferentes. Os
+            custos são estimativas com as taxas públicas de cada plataforma, não anúncios
+            individuais.
             {cheapest == null &&
-              " Comparação percentual indisponível: há menos de dois preços diretos válidos."}
+              " Comparação percentual indisponível: há menos de duas cotações válidas."}
           </p>
           <table className="w-full min-w-[720px] text-sm">
             <thead className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -336,7 +368,7 @@ function ItemPage() {
         </section>
       )}
 
-      {hasDirect && (
+      {hasComparable && (
         <OpenSkinSection
           o={openSkin}
           hiddenOldPrices={data.openskin.markets.length > 0 && markets.length === 0}
@@ -399,9 +431,20 @@ function ItemPage() {
         )}
       </section>
 
+      {data.variantsStatus === "unavailable" && (
+        <section className="panel mt-6 p-5 text-sm text-muted-foreground">
+          Outras versões temporariamente indisponíveis: a OpenSkin não respondeu à busca.
+        </section>
+      )}
       {data.variants.length > 0 && (
         <section className="panel mt-6 p-5">
           <h2 className="text-xl font-bold">Outras versões desta skin</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Versões encontradas na OpenSkin. Preços da Skinport reportados pela OpenSkin (USD); sem
+            cotação válida nas últimas 24h, mostramos apenas o nome.
+            {data.variantsStatus === "partial" &&
+              " Consulta de preços temporariamente indisponível."}
+          </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {data.variants.map((v) => (
               <Link

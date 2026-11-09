@@ -8,6 +8,8 @@ import {
   getSteamQuote,
   getOpenSkinPrices,
 } from "./sources.server";
+import { createItemDetailReader } from "./item-detail";
+import { getOpenSkinVariants } from "./item-variants";
 
 export const searchSchema = z.object({
   q: z.string().max(100).optional(),
@@ -80,60 +82,15 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async () =
   };
 });
 
+// All heavy catalog access remains in the search and dashboard endpoints.
+// Item details use only per-item APIs and a limited variants search.
+const readItem = createItemDetailReader({
+  history: getSkinportHistory,
+  steam: getSteamQuote,
+  openskin: getOpenSkinPrices,
+  variants: getOpenSkinVariants,
+});
+
 export const getItem = createServerFn({ method: "GET" })
   .inputValidator((d: { name: string }) => z.object({ name: z.string().min(1).max(200) }).parse(d))
-  .handler(async ({ data }) => {
-    const [{ rows, fetchedAt, stale: skinportStale, source }, history, steam, openskin] =
-      await Promise.all([
-        getSkinportItems(),
-        getSkinportHistory(data.name).catch(() => null),
-        getSteamQuote(data.name).catch(() => ({
-          quote: null,
-          status: "unavailable" as const,
-          fetchedAt: null,
-          retryAt: null,
-        })),
-        getOpenSkinPrices(data.name).catch(() => ({
-          markets: [],
-          icon: null,
-          status: "unavailable" as const,
-          fetchedAt: null,
-          retryAt: null,
-        })),
-      ]);
-    const found = rows.find((r) => r.name === data.name) ?? null;
-    const skinport = source === "openskin" ? null : found;
-    const base = found ? `${found.weapon} | ${found.skin}` : null;
-    const variants = base
-      ? rows
-          .filter(
-            (r) =>
-              r.name !== data.name &&
-              r.weapon === found!.weapon &&
-              r.skin === found!.skin &&
-              r.min != null,
-          )
-          .map((r) => ({
-            name: r.name,
-            min: r.min,
-            quantity: r.quantity,
-            exterior: r.exterior,
-            stattrak: r.stattrak,
-            currency: r.currency,
-          }))
-      : [];
-    return {
-      name: data.name,
-      skinport,
-      history,
-      source,
-      variants,
-      fetchedAt,
-      skinportStale,
-      steam: steam.quote,
-      steamStatus: steam.status,
-      steamFetchedAt: steam.fetchedAt,
-      steamRetryAt: steam.retryAt,
-      openskin,
-    };
-  });
+  .handler(async ({ data }) => readItem(data.name));
