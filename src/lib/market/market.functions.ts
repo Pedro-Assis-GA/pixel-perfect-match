@@ -31,16 +31,37 @@ export const searchSkins = createServerFn({ method: "GET" })
     return { ...searchRows(rows, data), fetchedAt, stale, source, currency };
   });
 
+const RANKING_LIMIT = 8;
+
+function selectTopEight<T>(items: readonly T[], compare: (a: T, b: T) => number): T[] {
+  const ranked: T[] = [];
+  for (const item of items) {
+    const last = ranked.at(-1);
+    if (ranked.length === RANKING_LIMIT && last !== undefined && !(compare(item, last) < 0)) {
+      continue;
+    }
+
+    // Insert after equal-ranked entries so ties keep their catalog order.
+    const index = ranked.findIndex((entry) => compare(item, entry) < 0);
+    ranked.splice(index === -1 ? ranked.length : index, 0, item);
+    if (ranked.length > RANKING_LIMIT) ranked.pop();
+  }
+  return ranked;
+}
+
 export const suggestSkins = createServerFn({ method: "GET" })
   .inputValidator((d: { q: string }) => z.object({ q: z.string().min(1).max(100) }).parse(d))
   .handler(async ({ data }) => {
     const { rows } = await getSkinportItems();
     const terms = data.q.toLowerCase().split(/\s+/).filter(Boolean);
-    return rows
-      .filter((r) => r.quantity > 0 && terms.every((t) => r.name.toLowerCase().includes(t)))
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 8)
-      .map((r) => ({ name: r.name, min: r.min, category: r.category }));
+    const matches = rows.filter(
+      (r) => r.quantity > 0 && terms.every((t) => r.name.toLowerCase().includes(t)),
+    );
+    return selectTopEight(matches, (a, b) => b.quantity - a.quantity).map((r) => ({
+      name: r.name,
+      min: r.min,
+      category: r.category,
+    }));
   });
 
 export const getDashboard = createServerFn({ method: "GET" }).handler(async () => {
@@ -55,17 +76,16 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async () =
   // "Opportunity" candidates need liquidity (≥ 20 listings) and a meaningful price,
   // so a single stray listing never ranks. Thresholds are USD (both min and suggested
   // come from the same source/currency). Still labelled as candidates, not certainties.
-  const opportunities = listed
+  const candidates = listed
     .filter((r) => r.suggested && r.suggested >= 4 && r.quantity >= 20 && r.min! >= 1)
     .map((r) => ({ ...r, discountPct: pctDiff(r.min!, r.suggested!) }))
-    .filter((r) => (r.discountPct ?? 0) <= -10 && (r.discountPct ?? 0) > -80) // >80% off is more likely bad data than a deal
-    .sort((a, b) => a.discountPct! - b.discountPct!)
-    .slice(0, 8);
-  const mostListed = [...listed].sort((a, b) => b.quantity - a.quantity).slice(0, 8);
-  const recent = [...listed]
-    .filter((r) => (r.suggested ?? 0) >= 10)
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 8);
+    .filter((r) => (r.discountPct ?? 0) <= -10 && (r.discountPct ?? 0) > -80); // >80% off is more likely bad data than a deal
+  const opportunities = selectTopEight(candidates, (a, b) => a.discountPct! - b.discountPct!);
+  const mostListed = selectTopEight(listed, (a, b) => b.quantity - a.quantity);
+  const recent = selectTopEight(
+    listed.filter((r) => (r.suggested ?? 0) >= 10),
+    (a, b) => b.updatedAt - a.updatedAt,
+  );
   return {
     fetchedAt,
     stale,
