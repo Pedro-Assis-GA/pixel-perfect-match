@@ -373,4 +373,118 @@ describe("limites de idade das cotações do catálogo", () => {
     expect((await get()).source).toBe("openskin");
     expect(fetch).toHaveBeenCalledTimes(1);
   });
+
+  it("descarta um fallback expirado mesmo quando a fonte primária volta a responder", async () => {
+    let clock = t;
+    let directAvailable = false;
+    const fetch = vi
+      .fn(async () => new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(Response.json(body({ [item.market_hash_name]: market(0) })));
+    const get = createCatalog({
+      skinport: async () => {
+        if (!directAvailable) throw new Error("Skinport indisponível");
+        return { rows: [row("Direto", t - clock)], fetchedAt: clock, stale: false };
+      },
+      fetch,
+      now: () => clock,
+    });
+    const fallback = await get();
+    clock = t + MAX_CATALOG_PRICE_AGE;
+    directAvailable = true;
+    await expect(get()).resolves.toMatchObject({ source: "skinport", currency: "USD" });
+    directAvailable = false;
+    await expect(get()).resolves.toEqual({ ...fallback, stale: true });
+
+    clock++;
+    directAvailable = true;
+    await expect(get()).resolves.toMatchObject({ source: "skinport" });
+    clock--;
+    directAvailable = false;
+    await expect(get()).rejects.toThrow("Skinport indisponível");
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe.each(["skinport", "openskin"] as const)("expiração do catálogo %s", (source) => {
+  function createFixture() {
+    const start = Date.UTC(2026, 9, 29, 12);
+    let clock = start;
+    const now = () => clock;
+    const response = () =>
+      source === "skinport"
+        ? Response.json([{ ...item, updated_at: clock / 1000 }])
+        : Response.json({
+            data: {
+              [item.market_hash_name]: {
+                skinport: { ask: 115, ask_volume: 63, updated_at: new Date(clock).toISOString() },
+              },
+            },
+          });
+    const fetch = vi.fn(async () => response());
+    const get =
+      source === "skinport"
+        ? createSkinportClient({ fetch, now })
+        : createCatalog({
+            skinport: async () => {
+              throw new Error("Skinport indisponível");
+            },
+            fetch,
+            now,
+          });
+    return { get, fetch, start, at: (time: number) => (clock = time) };
+  }
+
+  it("preserva o fallback no limite inclusivo e descarta após o limite durante cooldown", async () => {
+    const { get, fetch, start, at } = createFixture();
+    const initial = await get();
+    await expect(get()).resolves.toEqual(initial);
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    const expiry = start + MAX_CATALOG_PRICE_AGE;
+    at(expiry);
+    fetch.mockResolvedValueOnce(new Response(null, { status: 503 }));
+    await expect(get()).resolves.toEqual({ ...initial, stale: true });
+
+    at(expiry + 1);
+    await expect(get()).rejects.toThrow();
+    at(expiry);
+    // Moving the clock back makes a still-retained snapshot eligible again.
+    await expect(get()).rejects.toThrow();
+    expect(fetch).toHaveBeenCalledTimes(2);
+
+    const recoveryTime = expiry + SKINPORT_BLOCK_COOLDOWN;
+    at(recoveryTime);
+    const recovered = await Promise.all([get(), get(), get()]);
+    expect(fetch).toHaveBeenCalledTimes(3);
+    for (const result of recovered) {
+      expect(result).toMatchObject({
+        fetchedAt: recoveryTime,
+        stale: false,
+        rows: [{ name: item.market_hash_name, min: 115, quantity: 63, currency: "USD" }],
+      });
+      if (source === "openskin") expect(result.source).toBe("openskin");
+    }
+  });
+
+  it("descarta o snapshot que expira enquanto a atualização está pendente", async () => {
+    const { get, fetch, start, at } = createFixture();
+    await get();
+    const expiry = start + MAX_CATALOG_PRICE_AGE;
+    at(expiry);
+    let finish!: (response: Response) => void;
+    const response = new Promise<Response>((resolve) => {
+      finish = resolve;
+    });
+    fetch.mockReturnValueOnce(response);
+    const pending = get();
+    await Promise.resolve();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    at(expiry + 1);
+    finish(new Response(null, { status: 503 }));
+    await expect(pending).rejects.toThrow();
+
+    at(expiry);
+    await expect(get()).rejects.toThrow();
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
 });

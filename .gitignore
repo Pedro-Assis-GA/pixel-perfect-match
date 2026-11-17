@@ -7,6 +7,25 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Private reports and machine-specific reference files
+/reports/quality/
+/01_PARA_REPOSITORIO_SKIN_SCOPE/
+/scripts/test_report_acl.py
+
+# Local credentials
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+.npmrc
+credentials.json
+credentials.local.json
+*.pem
+*.key
+*.pfx
+*.p12
+
 node_modules
 dist
 dist-ssr
@@ -19,6 +38,7 @@ dist-ssr
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
+.dev.vars.*
 
 # Editor directories and files
 .vscode/*

@@ -45,13 +45,18 @@ function usableRows(rows: SkinRow[], timeMs: number): SkinRow[] {
   return rows.filter((r) => r.currency === "USD" && hasUsablePriceTimestamp(r.updatedAt, timeMs));
 }
 
-function cacheRows(cache: { at: number; rows: SkinRow[] } | null, timeMs: number): SkinRow[] {
-  if (
-    !cache ||
-    timeMs - cache.at > MAX_CATALOG_PRICE_AGE ||
-    cache.at > timeMs + ALLOWED_FUTURE_SKEW
-  )
-    return [];
+interface CatalogSnapshot {
+  at: number;
+  rows: SkinRow[];
+}
+
+function discardExpiredCatalog(cache: CatalogSnapshot | null, timeMs: number) {
+  return cache && timeMs - cache.at > MAX_CATALOG_PRICE_AGE ? null : cache;
+}
+
+function cacheRows(snapshot: CatalogSnapshot | null, timeMs: number): SkinRow[] {
+  const cache = discardExpiredCatalog(snapshot, timeMs);
+  if (!cache || cache.at > timeMs + ALLOWED_FUTURE_SKEW) return [];
   return usableRows(cache.rows, timeMs);
 }
 
@@ -73,12 +78,13 @@ export interface SkinportItems {
 export function createSkinportClient(opts: { fetch?: typeof fetch; now?: () => number } = {}) {
   const f = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   const now = opts.now ?? Date.now;
-  let cache: { at: number; rows: SkinRow[] } | null = null; // rows always USD (requested currency)
+  let cache: CatalogSnapshot | null = null; // rows always USD (requested currency)
   let inflight: Promise<SkinRow[]> | null = null;
   let retryAt = 0;
   let lastError: unknown = null;
 
   return async function getItems(): Promise<SkinportItems> {
+    cache = discardExpiredCatalog(cache, now());
     const saved = cacheRows(cache, now());
     if (saved.length && cache && now() - cache.at < SKINPORT_TTL)
       return { rows: saved, fetchedAt: cache.at, stale: false };
@@ -136,6 +142,7 @@ export function createSkinportClient(opts: { fetch?: typeof fetch; now?: () => n
       const rows = await inflight;
       return { rows, fetchedAt: cache!.at, stale: false };
     } catch (e) {
+      cache = discardExpiredCatalog(cache, now());
       const savedAfterFailure = cacheRows(cache, now());
       if (savedAfterFailure.length && cache)
         return { rows: savedAfterFailure, fetchedAt: cache.at, stale: true }; // preserve original timestamp
@@ -191,18 +198,22 @@ export function createCatalog(opts: {
 }) {
   const f = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   const now = opts.now ?? Date.now;
-  let cache: { at: number; rows: SkinRow[] } | null = null;
+  let cache: CatalogSnapshot | null = null;
   let failedUntil = 0;
   let fallbackInflight: Promise<SkinRow[]> | null = null;
   return async function getItems(): Promise<SkinportItems> {
+    // Release an expired fallback even when Skinport keeps serving the catalog.
+    cache = discardExpiredCatalog(cache, now());
     try {
       const r = await opts.skinport();
+      cache = discardExpiredCatalog(cache, now());
       // Never serve rows denominated in another currency as USD (e.g. an old BRL cache).
       const rows = usableRows(r.rows, now());
       if (now() - r.fetchedAt > MAX_CATALOG_PRICE_AGE || !rows.length)
         throw new Error("Skinport sem preços recentes em USD");
       return { ...r, rows, source: "skinport", currency: "USD" };
     } catch (e) {
+      cache = discardExpiredCatalog(cache, now());
       const saved = cacheRows(cache, now());
       const fb = (rows: SkinRow[], stale: boolean): SkinportItems => ({
         rows,
@@ -243,6 +254,7 @@ export function createCatalog(opts: {
         if (current.length) return fb(current, false);
         throw new Error("OpenSkin sem preços recentes disponíveis");
       } catch {
+        cache = discardExpiredCatalog(cache, now());
         const stillUsable = cacheRows(cache, now());
         if (stillUsable.length) return fb(stillUsable, true);
         throw e;
