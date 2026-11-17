@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "verdict": {"type": "string", "enum": ["APROVADO", "REPROVADO", "INCONCLUSIVO"]},
+    "criteria": {"type": "array", "items": {
+      "type": "object", "properties": {
+        "id": {"type": "string"},
+        "status": {"type": "string", "enum": ["PASS", "FAIL", "UNKNOWN"]},
+        "evidence": {"type": "array", "items": {"type": "string"}},
+        "finding": {"type": "string"}
+      }, "required": ["id", "status", "evidence", "finding"], "additionalProperties": false
+    }},
+    "blocking_issues": {"type": "array", "items": {"type": "string"}},
+    "feedback": {"type": "string"}
+  },
+  "required": ["verdict", "criteria", "blocking_issues", "feedback"],
+  "additionalProperties": false
+}

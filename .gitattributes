@@ -1,0 +1,2 @@
+# Preserve the byte layout used by the vendored skill's SHA-256 manifest.
+tools/quality-manager-v1.3/** text eol=lf
