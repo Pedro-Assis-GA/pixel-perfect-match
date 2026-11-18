@@ -51,6 +51,34 @@ describe("item detail without the bulk catalog", () => {
     expect(result.variantsStatus).toBe("ok");
   });
 
+  it("uses rich history status without an extra history request", async () => {
+    const legacy = vi.fn(async () => null);
+    const load = createItemDetailReader({
+      history: legacy,
+      historyDetails: async () => ({
+        history: null,
+        status: "rate_limited",
+        fetchedAt: null,
+        retryAt: 123456,
+      }),
+      steam: async () => ({ quote: null, status: "unavailable", fetchedAt: null, retryAt: null }),
+      openskin: async () => ({
+        markets: [],
+        status: "unavailable",
+        fetchedAt: null,
+        retryAt: null,
+      }),
+      variants: async () => ({ variants: [], status: "ok" }),
+    });
+    expect(await load(name)).toMatchObject({
+      history: null,
+      historyStatus: "rate_limited",
+      historyFetchedAt: null,
+      historyRetryAt: 123456,
+    });
+    expect(legacy).not.toHaveBeenCalled();
+  });
+
   it("returns unavailable statuses instead of throwing when all adapters fail", async () => {
     const failure = async () => {
       throw new Error("temporarily unavailable");

@@ -18,7 +18,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-hero">
       <header className="site-header sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
         <MarketTicker />
-        <div className="mx-auto flex max-w-[1536px] flex-wrap items-center gap-4 px-4 py-3">
+        <div className="shell-header-inner mx-auto flex max-w-[1536px] flex-wrap items-center gap-4 px-4 py-3">
           <Link
             to="/"
             className="flex items-center gap-2 font-display text-lg font-bold tracking-wider"

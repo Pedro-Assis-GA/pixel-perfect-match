@@ -122,6 +122,59 @@ describe("visual market regression", () => {
     );
   });
 
+  it("keeps long names and large figures readable as complete data with explicit comparison and age", () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
+    const name =
+      "StatTrak™ AK-47 | A very long finish name with an unusually long descriptive label (Field-Tested)";
+    render(
+      <SkinCard
+        r={{
+          name,
+          min: 1234567.89,
+          suggested: 2345678.9,
+          quantity: 987654321,
+          category: "Rifle",
+          exterior: "Field-Tested",
+          stattrak: true,
+          souvenir: false,
+          updatedAt: (Date.now() - 2 * 3600_000) / 1000,
+          discountPct: -29.8,
+        }}
+      />,
+    );
+    expect(screen.getByRole("link")).toHaveAttribute("title", name);
+    expect(screen.getByText("1.234.567,89", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText("2.345.678,90", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText("987.654.321 anúncios")).toBeInTheDocument();
+    expect(screen.getByText("vs. referência")).toBeInTheDocument();
+    expect(screen.getByText(/há 2 h · desatualizado/)).toBeInTheDocument();
+    expect(screen.getByText("Atualização")).toBeInTheDocument();
+    expect(screen.getByText("Skinport · USD")).toBeInTheDocument();
+  });
+
+  it("keeps unavailable values explicit instead of inserting zero prices", () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
+    render(
+      <SkinCard
+        r={{
+          name: "Unavailable test item",
+          min: null,
+          suggested: null,
+          quantity: 0,
+          category: "Other",
+          exterior: null,
+          stattrak: false,
+          souvenir: false,
+          updatedAt: Date.now() / 1000,
+          discountPct: null,
+        }}
+      />,
+    );
+    expect(screen.getAllByText("indisponível")).toHaveLength(2);
+    expect(screen.getByText("0 anúncios")).toBeInTheDocument();
+    expect(screen.queryByText(/US\$/)).not.toBeInTheDocument();
+  });
+
   it("ticker exposes real quote by touch toggle, supports pause and links to the item", () => {
     const client = new QueryClient();
     client.setQueryData(["ticker-price", "AK-47 | Redline (Field-Tested)"], {

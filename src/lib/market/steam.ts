@@ -1,5 +1,6 @@
 // Steam Community Market client with caching, image reuse and 429 backoff.
 // Pure module (fetch + clock injectable) so it can be unit-tested without network.
+import { emitDiagnostic, retryAfterMs, type MarketDiagnostic } from "./http-policy";
 import { parseUSD } from "./parse";
 
 export interface SteamQuote {
@@ -33,7 +34,13 @@ class RateLimited extends Error {
   }
 }
 
-export function createSteamClient(opts: { fetch?: typeof fetch; now?: () => number } = {}) {
+export function createSteamClient(
+  opts: {
+    fetch?: typeof fetch;
+    now?: () => number;
+    onDiagnostic?: (event: MarketDiagnostic) => void;
+  } = {},
+) {
   const f = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   const now = opts.now ?? Date.now;
 
@@ -45,13 +52,28 @@ export function createSteamClient(opts: { fetch?: typeof fetch; now?: () => numb
   let strikes = 0;
 
   async function getJson(url: string) {
-    const r = await f(url);
-    if (r.status === 429) {
-      const ra = Number(r.headers.get("retry-after"));
-      throw new RateLimited(Number.isFinite(ra) && ra > 0 ? ra * 1000 : null);
+    const endpoint = url.includes("priceoverview") ? "priceoverview" : "image";
+    let status: number | null = null;
+    try {
+      const r = await f(url);
+      status = r.status;
+      if (!r.ok) {
+        emitDiagnostic(opts.onDiagnostic, { source: "steam", endpoint, status, failure: "http" });
+        if (status === 429)
+          throw new RateLimited(retryAfterMs(r.headers.get("retry-after"), now()));
+        throw new Error(`Steam ${status}`);
+      }
+      return await r.json();
+    } catch (error) {
+      if (status === null || (status >= 200 && status < 300))
+        emitDiagnostic(opts.onDiagnostic, {
+          source: "steam",
+          endpoint,
+          status,
+          failure: status === null ? "network" : "invalid_data",
+        });
+      throw error;
     }
-    if (!r.ok) throw new Error(`Steam ${r.status}`);
-    return r.json();
   }
 
   function fromCache(name: string, status: SteamStatus, retryAt: number | null): SteamResult {
@@ -99,8 +121,9 @@ export function createSteamClient(opts: { fetch?: typeof fetch; now?: () => numb
       ]);
       if (!rateLimited && now() >= blockedUntil) strikes = 0;
       if (needImage) {
-        const hit = (search?.results ?? []).find(
-          (r: { hash_name: string }) => r.hash_name === name,
+        const hit = (Array.isArray(search?.results) ? search.results : []).find(
+          (r: unknown) =>
+            r !== null && typeof r === "object" && "hash_name" in r && r.hash_name === name,
         );
         const icon = hit?.asset_description?.icon_url;
         if (icon)

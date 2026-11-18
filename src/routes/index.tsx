@@ -16,7 +16,7 @@ const dashQ = queryOptions({
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SkinScope — Mercado de skins CS2 em tempo real" },
+      { title: "SkinScope — Cotações do mercado de skins CS2" },
       {
         name: "description",
         content:
@@ -57,7 +57,7 @@ function Dashboard() {
           <p className="text-xs uppercase tracking-[0.3em] text-primary">Visão geral do mercado</p>
           <h1 className="mt-2 text-4xl font-bold md:text-5xl">Mercado de Skins CS2</h1>
           <p className="mt-3 max-w-2xl text-muted-foreground">
-            Preços, liquidez e oportunidades em um só lugar. Atualizado{" "}
+            Preços, liquidez e oportunidades em um só lugar. Consulta ao catálogo{" "}
             <Updated ts={data.fetchedAt} />.
           </p>
         </div>
@@ -178,7 +178,7 @@ function Section({
 
 function Grid({ rows }: { rows: Parameters<typeof SkinCard>[0]["r"][] }) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="skin-card-grid">
       {rows.map((r) => (
         <SkinCard key={r.name} r={r} />
       ))}

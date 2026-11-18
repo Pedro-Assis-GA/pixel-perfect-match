@@ -279,25 +279,25 @@ export interface SkinportHistory {
   last_90_days: PeriodStat;
 }
 
-const histCache = new Map<string, { at: number; v: SkinportHistory | null }>();
+import { createSkinportHistoryClient } from "./skinport-history";
+import type { MarketDiagnostic } from "./http-policy";
+
+// No item names, URLs, response bodies, credentials or user identifiers in logs.
+function marketDiagnostic(event: MarketDiagnostic) {
+  console.warn("market_request_failed", JSON.stringify(event));
+}
+export const getSkinportHistoryResult = createSkinportHistoryClient({
+  onDiagnostic: marketDiagnostic,
+});
+// Preserve the existing adapter interface for other callers.
 export async function getSkinportHistory(name: string): Promise<SkinportHistory | null> {
-  const c = histCache.get(name);
-  if (c && Date.now() - c.at < SKINPORT_TTL) return c.v;
-  const res = await fetch(
-    `https://api.skinport.com/v1/sales/history?app_id=730&currency=USD&market_hash_name=${encodeURIComponent(name)}`,
-    { headers: { "Accept-Encoding": "br" } },
-  );
-  if (!res.ok) return c?.v ?? null;
-  const arr = (await res.json()) as SkinportHistory[];
-  const v = arr[0] ?? null;
-  histCache.set(name, { at: Date.now(), v });
-  return v;
+  return (await getSkinportHistoryResult(name)).history;
 }
 
 import { createSteamClient } from "./steam";
 import { createOpenSkinClient } from "./openskin";
 export type { SteamQuote, SteamResult, SteamStatus } from "./steam";
 
-const steam = createSteamClient();
+const steam = createSteamClient({ onDiagnostic: marketDiagnostic });
 export const getOpenSkinPrices = createOpenSkinClient();
 export const getSteamQuote = (name: string) => steam.getQuote(name);

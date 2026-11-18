@@ -15,6 +15,7 @@ import {
   pctDiff,
 } from "@/lib/market/parse";
 import {
+  historyStatusMessage,
   hasAggregatePrices,
   itemIndicators,
   steamNoticeMode,
@@ -367,6 +368,30 @@ function ItemPage() {
             Vendas efetivamente concluídas, agregadas por período. A Skinport não expõe série
             diária; não estimamos pontos intermediários.
           </p>
+          {historyStatusMessage(data.historyStatus) && (
+            <p
+              role="status"
+              className={
+                data.historyStatus === "stale"
+                  ? "mb-3 text-sm text-warning"
+                  : "mb-3 text-sm text-muted-foreground"
+              }
+            >
+              {historyStatusMessage(data.historyStatus)}
+            </p>
+          )}
+          {data.historyFetchedAt != null && (
+            <p className="mb-3 text-xs text-muted-foreground">
+              Consulta bem-sucedida do histórico · <Updated ts={data.historyFetchedAt} />. Este
+              horário não representa a data de cada venda.
+            </p>
+          )}
+          {data.historyRetryAt != null && (
+            <p className="mb-3 text-xs text-muted-foreground">
+              Próxima tentativa a partir de{" "}
+              {new Date(data.historyRetryAt).toISOString().replace("T", " ").slice(0, 19)} UTC.
+            </p>
+          )}
           {periods.length && periods.some(([, p]) => p.volume > 0) ? (
             <>
               <div className="grid gap-3 md:grid-cols-4">
@@ -414,7 +439,7 @@ function ItemPage() {
             <p className="text-sm text-muted-foreground">
               {data.history
                 ? "Sem vendas registradas suficientes para este item."
-                : "Histórico indisponível: a Skinport não respondeu à consulta."}
+                : "Os períodos de vendas serão exibidos quando houver histórico válido."}
             </p>
           )}
         </section>

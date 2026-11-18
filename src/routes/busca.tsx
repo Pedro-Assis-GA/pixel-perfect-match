@@ -199,9 +199,9 @@ function SearchPage() {
                 {k}: {String(v)} <X className="h-3 w-3" />
               </button>
             ))}
-            <div className="ml-auto flex items-center gap-2">
+            <div className="search-toolbar-actions ml-auto flex max-w-full flex-wrap items-center gap-2">
               <select
-                className="inp w-auto"
+                className="inp min-w-0 max-w-full flex-1"
                 value={sp.sort ?? "liquidity"}
                 onChange={(e) => set({ sort: e.target.value as SearchParams["sort"] })}
               >
@@ -251,7 +251,7 @@ function SearchPage() {
             </div>
           )}
           {q.isPending && (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="skin-card-grid">
               {Array.from({ length: 9 }).map((_, i) => (
                 <div key={i} className="panel h-36 animate-pulse" />
               ))}
@@ -264,9 +264,7 @@ function SearchPage() {
           )}
 
           {q.data && view === "cards" && (
-            <div
-              className={`grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 ${q.isFetching ? "opacity-60" : ""}`}
-            >
+            <div className={`skin-card-grid ${q.isFetching ? "opacity-60" : ""}`}>
               {q.data.items.map((r) => (
                 <SkinCard key={r.name} r={r} />
               ))}

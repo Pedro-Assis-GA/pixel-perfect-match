@@ -91,3 +91,14 @@ describe("item presentation data selection", () => {
     }
   });
 });
+
+describe("history availability copy", () => {
+  it("distinguishes failed refresh, missing data and rate limiting", async () => {
+    const { historyStatusMessage } = await import("./item-presentation");
+    expect(historyStatusMessage("stale")).toMatch(/cache.*atualização falhou/);
+    expect(historyStatusMessage("rate_limited")).toContain("429");
+    expect(historyStatusMessage("not_found")).toContain("não retornou histórico");
+    expect(historyStatusMessage("unavailable")).toContain("Nenhuma venda ou preço foi estimado");
+    expect(historyStatusMessage("ok")).toBeNull();
+  });
+});

@@ -4,6 +4,7 @@ import { CATEGORIES, EXTERIORS, pctDiff } from "./parse";
 import { searchRows } from "./search";
 import {
   getSkinportHistory,
+  getSkinportHistoryResult,
   getSkinportItems,
   getSteamQuote,
   getOpenSkinPrices,
@@ -107,6 +108,7 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async () =
 // Item details use only per-item APIs and a limited variants search.
 const readItem = createItemDetailReader({
   history: getSkinportHistory,
+  historyDetails: getSkinportHistoryResult,
   steam: getSteamQuote,
   openskin: getOpenSkinPrices,
   variants: getOpenSkinVariants,
