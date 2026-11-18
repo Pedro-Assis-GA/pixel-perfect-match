@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 import { usd, CATEGORY_LABEL, type Category } from "@/lib/market/parse";
 import { useFavorites } from "@/lib/market/favorites";
+import { SkinImage } from "./SkinImage";
 import { cn } from "@/lib/utils";
 
 export function Pct({ v, className }: { v: number | null | undefined; className?: string }) {
@@ -39,7 +41,21 @@ export function Money({
 
 export function Updated({ ts }: { ts: number }) {
   const ms = ts > 1e12 ? ts : ts * 1000;
-  const min = Math.round((Date.now() - ms) / 60000);
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+  if (!Number.isFinite(ms))
+    return <span className="text-xs text-muted-foreground">Atualização não informada</span>;
+  if (now == null)
+    return (
+      <time dateTime={new Date(ms).toISOString()} className="text-xs text-muted-foreground">
+        {new Date(ms).toISOString().slice(0, 16).replace("T", " ")} UTC
+      </time>
+    );
+  const min = Math.round((now - ms) / 60000);
   const stale = min > 60;
   return (
     <span className={cn("text-xs", stale ? "text-warning" : "text-muted-foreground")}>
@@ -65,6 +81,7 @@ export function FavButton({ name }: { name: string }) {
         e.preventDefault();
         toggle(name);
       }}
+      aria-pressed={on}
       aria-label={on ? "Remover dos favoritos" : "Adicionar aos favoritos"}
       className="rounded-sm p-1 text-muted-foreground hover:text-primary"
     >
@@ -89,11 +106,7 @@ export interface RowLike {
 
 export function SkinCard({ r }: { r: RowLike }) {
   return (
-    <Link
-      to="/item/$name"
-      params={{ name: r.name }}
-      className="panel group block p-4 transition-colors hover:border-primary"
-    >
+    <article className="panel skin-card group block p-4 transition-colors hover:border-primary">
       <div className="flex items-start justify-between gap-2">
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
           {CATEGORY_LABEL[r.category]}
@@ -101,10 +114,13 @@ export function SkinCard({ r }: { r: RowLike }) {
         </span>
         <FavButton name={r.name} />
       </div>
+      <SkinImage name={r.name} />
       <h3 className="mt-1 line-clamp-2 min-h-[2.5rem] text-sm font-semibold group-hover:text-primary">
         {r.stattrak && <span className="text-primary">ST™ </span>}
         {r.souvenir && <span className="text-warning">Souvenir </span>}
-        {r.name.replace(/StatTrak™ |^Souvenir /, "")}
+        <Link to="/item/$name" params={{ name: r.name }} className="skin-card-link">
+          {r.name.replace(/StatTrak™ |^Souvenir /, "")}
+        </Link>
       </h3>
       <div className="mt-3 flex items-end justify-between">
         <div>
@@ -114,15 +130,16 @@ export function SkinCard({ r }: { r: RowLike }) {
           <Money v={r.min} currency={r.currency} className="text-lg font-bold text-primary" />
         </div>
         <div className="text-right text-xs">
-          <div className="text-muted-foreground">vs. referência</div>
-          <Pct v={r.discountPct} />
+          <div className="text-muted-foreground">Referência</div>
+          <Money v={r.suggested} currency={r.currency} />
         </div>
       </div>
       <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-        <span className="num">{r.quantity} anúncios</span>
+        <span className="num">{r.quantity.toLocaleString("pt-BR")} anúncios</span>
+        <Pct v={r.discountPct} />
         <Updated ts={r.updatedAt} />
       </div>
-    </Link>
+    </article>
   );
 }
 

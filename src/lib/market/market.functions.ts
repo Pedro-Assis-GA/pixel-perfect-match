@@ -8,6 +8,7 @@ import {
   getSteamQuote,
   getOpenSkinPrices,
 } from "./sources.server";
+import { usableOpenSkinMarkets } from "@/components/market/item-presentation";
 import { createItemDetailReader } from "./item-detail";
 import { getOpenSkinVariants } from "./item-variants";
 
@@ -114,3 +115,17 @@ const readItem = createItemDetailReader({
 export const getItem = createServerFn({ method: "GET" })
   .inputValidator((d: { name: string }) => z.object({ name: z.string().min(1).max(200) }).parse(d))
   .handler(async ({ data }) => readItem(data.name));
+
+// Cosmetic ticker: fetch a single aggregated quote only on interaction. Never load a catalog.
+export const getTickerPrice = createServerFn({ method: "GET" })
+  .inputValidator((d: { name: string }) => z.object({ name: z.string().min(1).max(200) }).parse(d))
+  .handler(async ({ data }) => {
+    const result = await getOpenSkinPrices(data.name);
+    const quote = usableOpenSkinMarkets(result.markets, result.fetchedAt).find(
+      (market) => market.market === "Skinport",
+    );
+    return {
+      min: quote?.ask != null && quote.ask > 0 ? quote.ask : null,
+      updatedAt: quote?.updatedAt ?? null,
+    };
+  });

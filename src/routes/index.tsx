@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Box, Layers, Database, CircleDollarSign, Crosshair, ArrowUpRight } from "lucide-react";
 import { AppShell } from "@/components/market/AppShell";
 import { SkinCard, SkinportStaleNotice, Updated } from "@/components/market/bits";
 import { getDashboard } from "@/lib/market/market.functions";
@@ -50,17 +51,24 @@ function Dashboard() {
 
   return (
     <AppShell>
-      <SkinportStaleNotice stale={data.stale} ts={data.fetchedAt} source={data.source} />
-      <section className="mb-10">
-        <p className="text-xs uppercase tracking-[0.3em] text-primary">Visão geral do mercado</p>
-        <h1 className="mt-2 text-4xl font-bold md:text-5xl">Mercado CS2, sem achismo.</h1>
-        <p className="mt-3 max-w-2xl text-muted-foreground">
-          Preços reais coletados das fontes, taxas explícitas e oportunidades filtradas por
-          liquidez. Atualizado <Updated ts={data.fetchedAt} />.
-        </p>
-        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label="Itens com anúncio" v={data.totals.items.toLocaleString("pt-BR")} />
+      <section className="dashboard-hero mb-8">
+        <div className="hero-art" aria-hidden="true" />
+        <div className="hero-copy">
+          <p className="text-xs uppercase tracking-[0.3em] text-primary">Visão geral do mercado</p>
+          <h1 className="mt-2 text-4xl font-bold md:text-5xl">Mercado de Skins CS2</h1>
+          <p className="mt-3 max-w-2xl text-muted-foreground">
+            Preços, liquidez e oportunidades em um só lugar. Atualizado{" "}
+            <Updated ts={data.fetchedAt} />.
+          </p>
+        </div>
+        <div className="hero-stats mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Stat
+            icon={<Box />}
+            label="Itens com anúncio"
+            v={data.totals.items.toLocaleString("pt-BR")}
+          />
+          <Stat
+            icon={<Layers />}
             label={
               data.source === "openskin"
                 ? "Anúncios Skinport (via OpenSkin)"
@@ -68,10 +76,11 @@ function Dashboard() {
             }
             v={data.totals.listings.toLocaleString("pt-BR")}
           />
-          <Stat label="Fontes integradas" v="3" />
-          <Stat label="Moeda" v={data.currency ?? "USD"} />
+          <Stat icon={<Database />} label="Fontes integradas" v="3" />
+          <Stat icon={<CircleDollarSign />} label="Moeda" v={data.currency ?? "USD"} />
         </div>
       </section>
+      <SkinportStaleNotice stale={data.stale} ts={data.fetchedAt} source={data.source} />
 
       <Section
         title="Possíveis oportunidades"
@@ -129,11 +138,14 @@ function Dashboard() {
   );
 }
 
-function Stat({ label, v }: { label: string; v: string }) {
+function Stat({ label, v, icon }: { label: string; v: string; icon: React.ReactNode }) {
   return (
-    <div className="panel p-4">
-      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className="num mt-1 text-2xl font-bold">{v}</div>
+    <div className="panel stat-card p-4">
+      <span className="stat-icon">{icon}</span>
+      <div>
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+        <div className="num mt-1 text-2xl font-bold">{v}</div>
+      </div>
     </div>
   );
 }
@@ -149,7 +161,15 @@ function Section({
 }) {
   return (
     <section className="mb-10">
-      <h2 className="text-xl font-bold">{title}</h2>
+      <div className="section-heading">
+        <h2 className="text-xl font-bold">
+          <Crosshair aria-hidden="true" />
+          {title}
+        </h2>
+        <Link to="/busca" className="text-primary text-xs">
+          Ver itens <ArrowUpRight size={15} />
+        </Link>
+      </div>
       <p className="mb-4 text-xs text-muted-foreground">{sub}</p>
       {children}
     </section>
@@ -158,7 +178,7 @@ function Section({
 
 function Grid({ rows }: { rows: Parameters<typeof SkinCard>[0]["r"][] }) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
       {rows.map((r) => (
         <SkinCard key={r.name} r={r} />
       ))}

@@ -105,3 +105,11 @@ export function steamNoticeMode(status: string, hasAlternatives: boolean) {
   if (hasAlternatives && status !== "stale") return "info";
   return "warning";
 }
+
+export function steamAlternativeNotice(status: string) {
+  if (status === "rate_limited")
+    return "A Steam limitou as consultas diretas (HTTP 429). Preços agregados alternativos estão disponíveis via OpenSkin (USD).";
+  if (status === "not_found")
+    return "A Steam não retornou preço direto para este item. Preços agregados alternativos estão disponíveis via OpenSkin (USD).";
+  return "A consulta direta à Steam está temporariamente indisponível. Preços agregados alternativos estão disponíveis via OpenSkin (USD).";
+}

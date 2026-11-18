@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Crosshair, Search } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { suggestSkins } from "@/lib/market/market.functions";
+import { MarketTicker } from "./MarketTicker";
 import { usd } from "@/lib/market/parse";
 
 const NAV = [
@@ -15,8 +16,9 @@ const NAV = [
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-hero">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-4 py-3">
+      <header className="site-header sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
+        <MarketTicker />
+        <div className="mx-auto flex max-w-[1536px] flex-wrap items-center gap-4 px-4 py-3">
           <Link
             to="/"
             className="flex items-center gap-2 font-display text-lg font-bold tracking-wider"
@@ -24,7 +26,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Crosshair className="h-5 w-5 text-primary" />
             SKIN<span className="text-primary">SCOPE</span>
           </Link>
-          <nav className="flex gap-1 text-sm">
+          <nav aria-label="Navegação principal" className="main-nav flex gap-1 text-sm">
             {NAV.map((n) => (
               <Link
                 key={n.to}
@@ -39,7 +41,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <GlobalSearch />
         </div>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
+      <main className="mx-auto max-w-[1536px] px-4 py-8 sm:px-8">{children}</main>
       <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">
         Somente leitura · Dados de Skinport e Steam Community Market · Não é recomendação de
         investimento

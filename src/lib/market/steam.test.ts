@@ -14,6 +14,104 @@ function setup(handler: (url: string) => Response | Promise<Response>) {
 }
 
 describe("steam client", () => {
+  it.each([429, 503, "offline", "invalid-json"] as const)(
+    "keeps a valid quote when optional image lookup fails with %s",
+    async (failure) => {
+      const { c, fetch, tick, now } = setup((url) => {
+        if (url.includes("priceoverview")) return ok(ov);
+        if (failure === "offline") throw new Error("offline");
+        if (failure === "invalid-json") return new Response("invalid-json");
+        return new Response(null, { status: failure, headers: { "retry-after": "120" } });
+      });
+      const first = await c.getQuote("AK");
+      expect(first).toMatchObject({
+        status: "ok",
+        fetchedAt: now(),
+        quote: { lowest: 10.5, median: 11, image: null },
+      });
+      const calls = fetch.mock.calls.length;
+      expect(await c.getQuote("AK")).toEqual(first);
+      if (failure === 429) {
+        const blocked = await c.getQuote("OTHER");
+        expect(blocked).toMatchObject({ status: "rate_limited", quote: null });
+        expect(blocked.retryAt).toBe(now() + 120_000);
+        expect(fetch).toHaveBeenCalledTimes(calls);
+        tick(120_000);
+        expect((await c.getQuote("OTHER")).status).toBe("ok");
+        expect(fetch).toHaveBeenCalledTimes(calls + 2);
+      }
+    },
+  );
+
+  it("shares concurrent quote requests even when the image is rate limited", async () => {
+    const { c, fetch } = setup((url) =>
+      url.includes("priceoverview") ? ok(ov) : new Response(null, { status: 429 }),
+    );
+    const results = await Promise.all([c.getQuote("AK"), c.getQuote("AK"), c.getQuote("AK")]);
+    expect(results.every((result) => result.status === "ok" && result.quote?.lowest === 10.5)).toBe(
+      true,
+    );
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("retains the longest Retry-After when both endpoints are rate limited", async () => {
+    const { c, fetch, tick, now } = setup(
+      (url) =>
+        new Response(null, {
+          status: 429,
+          headers: { "retry-after": url.includes("priceoverview") ? "180" : "60" },
+        }),
+    );
+    await c.getQuote("AK");
+    await Promise.resolve();
+    expect((await c.getQuote("OTHER")).retryAt).toBe(now() + 180_000);
+    tick(60_000);
+    expect((await c.getQuote("OTHER")).status).toBe("rate_limited");
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the original quote timestamp while a long image cooldown outlasts price TTL", async () => {
+    const { c, fetch, tick, now } = setup((url) =>
+      url.includes("priceoverview")
+        ? ok(ov)
+        : new Response(null, { status: 429, headers: { "retry-after": "1200" } }),
+    );
+    const quote = await c.getQuote("AK");
+    tick(PRICE_TTL + 1);
+    const cached = await c.getQuote("AK");
+    expect(cached).toMatchObject({
+      status: "stale",
+      fetchedAt: quote.fetchedAt,
+      retryAt: now() + 1_200_000 - PRICE_TTL - 1,
+      quote: { lowest: 10.5 },
+    });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not clear a newer cooldown when another in-flight quote succeeds", async () => {
+    let finish!: (response: Response) => void;
+    const delayed = new Promise<Response>((resolve) => {
+      finish = resolve;
+    });
+    const { c, fetch, now } = setup((url) => {
+      if (url.includes("market_hash_name=AK")) return delayed;
+      if (url.includes("priceoverview")) return ok(ov);
+      return url.includes("query=LIMIT")
+        ? new Response(null, { status: 429, headers: { "retry-after": "180" } })
+        : ok(search);
+    });
+    const pending = c.getQuote("AK");
+    expect((await c.getQuote("LIMIT")).status).toBe("ok");
+    finish(ok(ov));
+    expect((await pending).status).toBe("ok");
+    const count = fetch.mock.calls.length;
+    expect(await c.getQuote("OTHER")).toMatchObject({
+      status: "rate_limited",
+      retryAt: now() + 180_000,
+    });
+    expect(fetch).toHaveBeenCalledTimes(count);
+  });
+
   it("caches a successful quote and does not refetch within TTL", async () => {
     const { c, fetch } = setup((u) => ok(u.includes("priceoverview") ? ov : search));
     const a = await c.getQuote("AK");

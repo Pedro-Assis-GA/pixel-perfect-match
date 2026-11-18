@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { LayoutGrid, List, Share2, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { SkinImage } from "@/components/market/SkinImage";
 import { AppShell } from "@/components/market/AppShell";
 import {
   FavButton,
@@ -80,7 +81,7 @@ function SearchPage() {
   return (
     <AppShell>
       <div className="flex flex-col gap-6 lg:flex-row">
-        <aside className="panel h-fit w-full shrink-0 space-y-4 p-4 lg:w-64">
+        <aside className="panel h-fit w-full shrink-0 space-y-4 p-4 lg:w-60">
           <h2 className="text-sm font-bold uppercase tracking-widest">Filtros</h2>
           <Field label="Nome">
             <input
@@ -297,7 +298,10 @@ function SearchPage() {
                           params={{ name: r.name }}
                           className="hover:text-primary"
                         >
-                          {r.name}
+                          <span className="flex items-center gap-3">
+                            <SkinImage name={r.name} className="table-image" />
+                            {r.name}
+                          </span>
                         </Link>
                       </td>
                       <td className="p-2 text-right">

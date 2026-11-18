@@ -74,6 +74,15 @@ export function createSteamClient(opts: { fetch?: typeof fetch; now?: () => numb
     const enc = encodeURIComponent(name);
     const img = images.get(name);
     const needImage = !img || now() - img.at > IMAGE_TTL;
+    let rateLimited = false;
+
+    function rememberRateLimit(error: RateLimited) {
+      if (!rateLimited) strikes++;
+      rateLimited = true;
+      const wait = error.retryAfterMs ?? Math.min(RL_BASE * 2 ** (strikes - 1), RL_MAX);
+      blockedUntil = Math.max(blockedUntil, now() + wait);
+    }
+
     try {
       const [ov, search] = await Promise.all([
         getJson(
@@ -82,10 +91,13 @@ export function createSteamClient(opts: { fetch?: typeof fetch; now?: () => numb
         needImage
           ? getJson(
               `https://steamcommunity.com/market/search/render/?appid=730&norender=1&count=5&query=${enc}`,
-            ).catch((e) => (e instanceof RateLimited ? Promise.reject(e) : null))
+            ).catch((error: unknown) => {
+              if (error instanceof RateLimited) rememberRateLimit(error);
+              return null;
+            })
           : null,
       ]);
-      strikes = 0;
+      if (!rateLimited && now() >= blockedUntil) strikes = 0;
       if (needImage) {
         const hit = (search?.results ?? []).find(
           (r: { hash_name: string }) => r.hash_name === name,
@@ -119,9 +131,7 @@ export function createSteamClient(opts: { fetch?: typeof fetch; now?: () => numb
       return { quote, status: "ok", fetchedAt: now(), retryAt: null };
     } catch (e) {
       if (e instanceof RateLimited) {
-        strikes++;
-        const wait = e.retryAfterMs ?? Math.min(RL_BASE * 2 ** (strikes - 1), RL_MAX);
-        blockedUntil = now() + wait;
+        rememberRateLimit(e);
         return fromCache(name, "rate_limited", blockedUntil);
       }
       const until = now() + FAIL_BACKOFF;

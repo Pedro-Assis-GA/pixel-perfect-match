@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Database, Store } from "lucide-react";
 import { AppShell } from "@/components/market/AppShell";
 
 export const Route = createFileRoute("/fontes")({
@@ -24,13 +25,13 @@ export const Route = createFileRoute("/fontes")({
 const SOURCES = [
   {
     name: "Skinport",
-    status: "ativo",
+    status: "integrado",
     how: "API pública oficial (itens e histórico de vendas agregado). Cache de 5 min, conforme limite da API.",
     gives: "Menor/maior preço, referência, quantidade de anúncios, vendas de 24h/7d/30d/90d.",
   },
   {
     name: "Steam Community Market",
-    status: "ativo",
+    status: "integrado",
     how: "Endpoint público de cotação, consultado por item.",
     gives: "Menor preço, mediana e volume de 24h, imagem do item. Saldo não sacável.",
   },
@@ -63,18 +64,22 @@ const SOURCES = [
 function Sources() {
   return (
     <AppShell>
-      <h1 className="text-3xl font-bold">Fontes de dados</h1>
+      <div className="page-heading">
+        <Database aria-hidden="true" />
+        <h1 className="text-3xl font-bold">Fontes de dados</h1>
+      </div>
       <p className="mb-6 max-w-2xl text-sm text-muted-foreground">
         Mostramos apenas preços vindos das fontes. Quando uma fonte não está integrada, nada é
         estimado no lugar dela.
       </p>
       <div className="grid gap-3 md:grid-cols-2">
         {SOURCES.map((s) => (
-          <div key={s.name} className="panel p-4">
-            <div className="flex items-center justify-between">
+          <div key={s.name} className="panel source-card p-5">
+            <Store className="source-icon" aria-hidden="true" />
+            <div className="flex items-center justify-between gap-2">
               <h2 className="font-bold">{s.name}</h2>
               <span
-                className={`rounded-sm px-2 py-0.5 text-[10px] uppercase tracking-widest ${s.status === "ativo" ? "bg-success/15 text-success" : s.status === "requer chave" ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}`}
+                className={`rounded-sm px-2 py-0.5 text-[10px] uppercase tracking-widest ${s.status === "integrado" ? "bg-success/15 text-success" : s.status === "requer chave" ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}`}
               >
                 {s.status}
               </span>

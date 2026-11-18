@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { OpenSkinMarket } from "@/lib/market/openskin";
-import { hasAggregatePrices, itemIndicators, steamNoticeMode } from "./item-presentation";
+import {
+  hasAggregatePrices,
+  itemIndicators,
+  steamNoticeMode,
+  steamAlternativeNotice,
+} from "./item-presentation";
 
 const market = (overrides: Partial<OpenSkinMarket> = {}): OpenSkinMarket => ({
   market: "Steam",
@@ -74,5 +79,15 @@ describe("item presentation data selection", () => {
   it("retains stale direct data warnings even when alternatives exist", () => {
     expect(steamNoticeMode("stale", true)).toBe("warning");
     expect(steamNoticeMode("ok", true)).toBe("none");
+  });
+
+  it("distinguishes rate limiting from a missing price and an unavailable direct source", () => {
+    expect(steamAlternativeNotice("rate_limited")).toContain("HTTP 429");
+    expect(steamAlternativeNotice("not_found")).toContain("não retornou preço direto");
+    expect(steamAlternativeNotice("unavailable")).toContain("temporariamente indisponível");
+    for (const status of ["rate_limited", "not_found", "unavailable"]) {
+      expect(steamAlternativeNotice(status)).toContain("via OpenSkin (USD)");
+      expect(steamNoticeMode(status, true)).toBe("info");
+    }
   });
 });
