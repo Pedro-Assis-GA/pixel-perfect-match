@@ -112,6 +112,69 @@ describe("steam client", () => {
     expect(fetch).toHaveBeenCalledTimes(count);
   });
 
+  it.each([
+    [null],
+    [17, "invalid"],
+    [null, { hash_name: "A", asset_description: { icon_url: "valid-icon" } }],
+  ])("keeps prices when optional image entries are malformed: %j", async (...entries) => {
+    const client = createSteamClient({
+      fetch: (async (url: RequestInfo | URL) =>
+        String(url).includes("priceoverview") ? ok(ov) : ok({ results: entries })) as typeof fetch,
+    });
+    const result = await client.getQuote("A");
+    expect(result.status).toBe("ok");
+    expect(result.quote?.lowest).toBe(10.5);
+  });
+
+  it("identifies the failing endpoint without names or URLs and honors date-based waits", async () => {
+    const now = Date.UTC(2026, 10, 18, 12);
+    const diagnostic = vi.fn();
+    const fetcher = vi.fn(async (url: RequestInfo | URL) =>
+      String(url).includes("priceoverview")
+        ? new Response(null, {
+            status: 429,
+            headers: { "Retry-After": new Date(now + 180_000).toUTCString() },
+          })
+        : ok(search),
+    );
+    const client = createSteamClient({
+      fetch: fetcher as typeof fetch,
+      now: () => now,
+      onDiagnostic: diagnostic,
+    });
+    expect(await client.getQuote("PRIVATE-ITEM")).toMatchObject({
+      status: "rate_limited",
+      retryAt: now + 180_000,
+    });
+    expect(diagnostic).toHaveBeenCalledWith({
+      source: "steam",
+      endpoint: "priceoverview",
+      status: 429,
+      failure: "http",
+    });
+    expect(JSON.stringify(diagnostic.mock.calls)).not.toMatch(/PRIVATE|https:/);
+  });
+
+  it("does not lose a price when diagnostics throw or optional image results are malformed", async () => {
+    const client = createSteamClient({
+      fetch: (async (url: RequestInfo | URL) =>
+        String(url).includes("priceoverview")
+          ? ok(ov)
+          : ok({ results: { invalid: true } })) as typeof fetch,
+    });
+    expect((await client.getQuote("A")).quote?.lowest).toBe(10.5);
+    const failure = createSteamClient({
+      fetch: (async (url: RequestInfo | URL) =>
+        String(url).includes("priceoverview")
+          ? ok(ov)
+          : new Response(null, { status: 429 })) as typeof fetch,
+      onDiagnostic: () => {
+        throw new Error("observer");
+      },
+    });
+    expect((await failure.getQuote("A")).quote?.lowest).toBe(10.5);
+  });
+
   it("caches a successful quote and does not refetch within TTL", async () => {
     const { c, fetch } = setup((u) => ok(u.includes("priceoverview") ? ov : search));
     const a = await c.getQuote("AK");

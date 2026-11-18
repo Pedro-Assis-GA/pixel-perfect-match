@@ -3,10 +3,12 @@
 import type { SkinportHistory, SkinRow } from "./sources.server";
 import type { SteamResult } from "./steam";
 import type { OpenSkinResult } from "./openskin";
+import type { HistoryResult } from "./skinport-history";
 import type { ItemVariantsResult } from "./item-variants";
 
 export interface ItemDetailDependencies {
   history: (name: string) => Promise<SkinportHistory | null>;
+  historyDetails?: (name: string) => Promise<HistoryResult>;
   steam: (name: string) => Promise<SteamResult>;
   openskin: (name: string) => Promise<OpenSkinResult>;
   variants: (name: string) => Promise<ItemVariantsResult>;
@@ -15,7 +17,20 @@ export interface ItemDetailDependencies {
 export function createItemDetailReader(deps: ItemDetailDependencies) {
   return async (name: string) => {
     const [history, steam, openskin, versionData] = await Promise.all([
-      deps.history(name).catch(() => null),
+      (deps.historyDetails
+        ? deps.historyDetails(name)
+        : deps.history(name).then((history) => ({
+            history,
+            status: history ? ("ok" as const) : ("unavailable" as const),
+            fetchedAt: null,
+            retryAt: null,
+          }))
+      ).catch(() => ({
+        history: null,
+        status: "unavailable" as const,
+        fetchedAt: null,
+        retryAt: null,
+      })),
       deps.steam(name).catch(() => ({
         quote: null,
         status: "unavailable" as const,
@@ -45,7 +60,10 @@ export function createItemDetailReader(deps: ItemDetailDependencies) {
       variantsStatus: versionData.status,
       fetchedAt: openskin.fetchedAt ?? 0,
       skinportStale: openskin.status === "stale",
-      history,
+      history: history.history,
+      historyStatus: history.status,
+      historyFetchedAt: history.fetchedAt,
+      historyRetryAt: history.retryAt,
       steam: steam.quote,
       steamStatus: steam.status,
       steamFetchedAt: steam.fetchedAt,

@@ -115,28 +115,39 @@ export function SkinCard({ r }: { r: RowLike }) {
         <FavButton name={r.name} />
       </div>
       <SkinImage name={r.name} />
-      <h3 className="mt-1 line-clamp-2 min-h-[2.5rem] text-sm font-semibold group-hover:text-primary">
+      <h3 className="skin-card-title text-sm font-semibold group-hover:text-primary">
         {r.stattrak && <span className="text-primary">ST™ </span>}
         {r.souvenir && <span className="text-warning">Souvenir </span>}
-        <Link to="/item/$name" params={{ name: r.name }} className="skin-card-link">
+        <Link to="/item/$name" params={{ name: r.name }} className="skin-card-link" title={r.name}>
           {r.name.replace(/StatTrak™ |^Souvenir /, "")}
         </Link>
       </h3>
-      <div className="mt-3 flex items-end justify-between">
+      <div className="skin-card-market text-[10px] uppercase tracking-wide text-muted-foreground">
+        Skinport · USD
+      </div>
+      <div className="skin-card-prices">
         <div>
-          <div className="text-[10px] uppercase text-muted-foreground">
-            Menor anúncio · Skinport (USD)
-          </div>
-          <Money v={r.min} currency={r.currency} className="text-lg font-bold text-primary" />
+          <div className="skin-card-label">Menor anúncio</div>
+          <Money
+            v={r.min}
+            currency={r.currency}
+            className="skin-card-price text-lg font-bold text-primary"
+          />
         </div>
-        <div className="text-right text-xs">
-          <div className="text-muted-foreground">Referência</div>
-          <Money v={r.suggested} currency={r.currency} />
+        <div>
+          <div className="skin-card-label">Referência</div>
+          <Money v={r.suggested} currency={r.currency} className="skin-card-price text-sm" />
         </div>
       </div>
-      <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+      <div className="skin-card-facts text-xs text-muted-foreground">
         <span className="num">{r.quantity.toLocaleString("pt-BR")} anúncios</span>
-        <Pct v={r.discountPct} />
+        <span className="skin-card-comparison">
+          <Pct v={r.discountPct} />
+          <span>vs. referência</span>
+        </span>
+      </div>
+      <div className="skin-card-updated text-xs text-muted-foreground">
+        <span>Atualização</span>
         <Updated ts={r.updatedAt} />
       </div>
     </article>
@@ -163,8 +174,8 @@ export function SkinportStaleNotice({
             : "border-border bg-muted/40 text-muted-foreground",
         )}
       >
-        Fonte alternativa: preços da Skinport reportados pela OpenSkin (USD). Consulta à OpenSkin{" "}
-        <Updated ts={ts} />
+        Fonte alternativa: preços da Skinport reportados pela OpenSkin (USD). Consulta ao agregado
+        OpenSkin (não é a atualização de cada cotação) <Updated ts={ts} />
         {stale ? " — nova consulta falhou, dados podem estar desatualizados" : ""}.
       </div>
     );

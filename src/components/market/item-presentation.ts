@@ -113,3 +113,14 @@ export function steamAlternativeNotice(status: string) {
     return "A Steam não retornou preço direto para este item. Preços agregados alternativos estão disponíveis via OpenSkin (USD).";
   return "A consulta direta à Steam está temporariamente indisponível. Preços agregados alternativos estão disponíveis via OpenSkin (USD).";
 }
+
+export function historyStatusMessage(status: string): string | null {
+  if (status === "stale")
+    return "Histórico em cache: a atualização falhou. A data abaixo é da última consulta bem-sucedida.";
+  if (status === "rate_limited")
+    return "A Skinport limitou a consulta do histórico (HTTP 429). Respeitamos o período de espera informado.";
+  if (status === "not_found") return "A Skinport não retornou histórico para este item.";
+  if (status === "unavailable")
+    return "Histórico temporariamente indisponível na Skinport. Nenhuma venda ou preço foi estimado.";
+  return null;
+}
