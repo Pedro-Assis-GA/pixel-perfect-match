@@ -626,29 +626,33 @@
   }
 }
 
-/* Decorative slash from the approved visual reference. */
+/* Anchor the reference slash to the heading, independently of the eyebrow. */
 .hero-copy {
-  padding-left: 44px;
+  padding-left: 56px;
 }
-.hero-copy::before {
+.hero-copy h1::before {
   content: "";
   position: absolute;
-  left: 10px;
-  top: 44px;
+  left: -44px;
+  top: 0.12em;
   width: 8px;
-  height: 65px;
+  height: 1.2em;
   background: var(--primary);
   transform: skewX(-23deg);
   pointer-events: none;
 }
 @media (max-width: 767px) {
   .hero-copy {
-    padding-left: 26px;
+    padding-left: 32px;
   }
-  .hero-copy::before {
-    left: 5px;
-    top: 40px;
+  .hero-copy h1::before {
+    left: -26px;
+    top: 0.12em;
     width: 6px;
-    height: 52px;
+    height: 1.2em;
   }
+}
+
+.hero-copy h1 {
+  position: relative;
 }
